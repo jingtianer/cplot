@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <float.h>
+typedef long double number_t;
 //#define LOG_LEVEL DEBUG_LOG
 #define DEBUG_LOG 7
 #define INFO_LOG 5
@@ -34,7 +35,32 @@ void logger(int level, const char *format, ...) {
     fprintf(stderr, "%s\n", str);
     free(str);
 }
-double x1, x2, _y1, _y2, s1, s2;
+int alloc_sprintf(char **level, const char *format, ...) {
+    if(level == NULL) return 0;
+    va_list args;
+    va_start(args, format);
+    int len = vsnprintf(NULL, 0, format, args)+1;
+    va_end(args);
+    va_start(args, format);
+    *level = malloc(len);
+    vsprintf(*level, format, args);
+    va_end(args);
+    return len;
+}
+int example(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int len = vsnprintf(NULL, 0, format, args)+1;
+    va_end(args);
+    va_start(args, format);
+    char *str = malloc(len);
+    vsprintf(str, format, args);
+    va_end(args);
+    system(str);
+    logger(INFO_LOG, "%s", str);
+    free(str);
+}
+number_t x1, x2, _y1, _y2, s1, s2;
 
 #define PUSH(s, n) (s[s##_ptr++] = (n))
 #define POP(s, n) (n = s[--s##_ptr])
@@ -60,7 +86,7 @@ enum {
 const static int op_min = op_acos;
 const static int op_max = op_ceil;
 
-static double stack[1024];
+static number_t stack[1024];
 static char op_stack[1024];
 static int priv[128] = {
         [0 ... 36] = 0,
@@ -98,11 +124,11 @@ void biCheck() {
     }
 }
 void pushOP(char cur_op) {
-    double n1, n2;
+    number_t n1, n2;
     char op;
     while(!EMPTY(op_stack) && priv[TOP(op_stack, op)] >= priv[cur_op]) {
         POP(op_stack, op);
-        double res = 0;
+        number_t res = 0;
         POP(stack, n2);
         if(!EMPTY(stack))POP(stack, n1);
         else n1 = 0;
@@ -128,10 +154,10 @@ void pushOP(char cur_op) {
                     logger(ERR_LOG, "divisor is zeor!");
 //                    exit(1);
                 }
-                res = fmod(n1 , n2);
+                res = fmodl(n1 , n2);
                 break;
             case '^':
-                res = pow(n1, n2);
+                res = powl(n1, n2);
                 break;
             default:
                 break;
@@ -142,7 +168,7 @@ void pushOP(char cur_op) {
 int len_strncmp(const char *a, const char *b) {
     return strncmp(a, b, strlen(b));
 }
-double eval(double y, double x, const char *expr) {
+number_t eval(number_t y, number_t x, const char *expr) {
     int len = strlen(expr);
     int i = 0;
     stack_ptr = 0;
@@ -165,7 +191,7 @@ double eval(double y, double x, const char *expr) {
                 PUSH(op_stack, '(');
                 break;
             case ')': {
-                double n1, n2;
+                number_t n1, n2;
                 char op;
                 if(EMPTY(op_stack)) {
                     logger(ERR_LOG, "no match ')'");
@@ -175,63 +201,63 @@ double eval(double y, double x, const char *expr) {
                 POP(op_stack, op);
                 if(TOP(op_stack, op) >= op_min && TOP(op_stack, op) <= op_max) {
                     POP(op_stack, op);
-                    double n;
+                    number_t n;
                     if(!EMPTY(stack)) {
                         POP(stack, n);
                     } else {
                         logger(ERR_LOG, "Error : no opvalue");
                         exit(1);
                     }
-                    double (*op_func)(double);
+                    number_t (*op_func)(number_t);
                     switch(op) {
                         case op_acos:
                             if(n > 1 || n < -1) return DBL_MAX;
-                            op_func = acos;
+                            op_func = acosl;
                             break;
                         case op_asin:
                             if(n > 1 || n < -1) return DBL_MAX;
-                            op_func = asin;
+                            op_func = asinl;
                             break;
                         case op_atan:
-                            op_func = atan;
+                            op_func = atanl;
                             break;
                         case op_cos:
-                            op_func = cos;
+                            op_func = cosl;
                             break;
                         case op_cosh:
-                            op_func = cosh;
+                            op_func = coshl;
                             break;
                         case op_sin:
-                            op_func = sin;
+                            op_func = sinl;
                             break;
                         case op_sinh:
-                            op_func = sinh;
+                            op_func = sinhl;
                             break;
                         case op_tan:
-                            op_func = tan;
+                            op_func = tanl;
                             break;
                         case op_tanh:
-                            op_func = tanh;
+                            op_func = tanhl;
                             break;
                         case op_exp:
-                            op_func = exp;
+                            op_func = expl;
                             break;
                         case op_log:
                             if(n < 0) return DBL_MAX;
-                            op_func = log;
+                            op_func = logl;
                             break;
                         case op_sqrt:
                             if(n < 0) return DBL_MAX;
-                            op_func = sqrt;
+                            op_func = sqrtl;
                             break;
                         case op_fabs:
-                            op_func = fabs;
+                            op_func = fabsl;
                             break;
                         case op_ceil:
-                            op_func = ceil;
+                            op_func = ceill;
                             break;
                         case op_floor:
-                            op_func = floor;
+                            op_func = floorl;
                             break;
                     }
                     PUSH(stack, op_func(n));
@@ -272,8 +298,8 @@ double eval(double y, double x, const char *expr) {
                 break;
             case '0':case '1':case '2':case '3':case '4':case '5':case '6':case '7':case '8':case '9':case '.':
             {
-                double n = 0;
-                double n1 = 1;
+                number_t n = 0;
+                number_t n1 = 1;
                 while(i < len) {
                     if(expr[i] < '0' || expr[i] > '9') {
                         break;
@@ -380,15 +406,14 @@ void INIT(char **argv) {
 #define RIGHT_MARGIN 10
 #define TOP_MARGIN 10
 #define END_MARGIN 10
-#define LEFT_EXTRA_PIXEL 10
-#define RIGHT_EXTRA_PIXEL 10
-#define TOP_EXTRA_PIXEL 10
-#define END_EXTRA_PIXEL 10
+#define LEFT_EXTRA_PIXEL    0
+#define RIGHT_EXTRA_PIXEL   0
+#define TOP_EXTRA_PIXEL     0
+#define END_EXTRA_PIXEL     0
 #define R 255
 #define G 255
 #define B 255
 #define A 255
-#define ACCURACY 0.01
 #define X_PAINTERSIZE 10
 #define Y_PAINTERSIZE 30
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -396,14 +421,19 @@ void INIT(char **argv) {
 #ifndef USE_CHAR
 int main(int argc, char **argv) {
     if(argc < 8) {
+        char *str;
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
-        logger(INFO_LOG, "%s -1 1 0.125 -1 1 0.0625 \"x*x+y*y-1\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log", argv[0]);
-
+        example("%s -1 1 500 -1 1 500 \"x*x+y*y-1\" 2>errs.log 1>out1.png", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 500 \"-3*pi\" \"2*pi\" 500 \"y^2-SIN(x+y)^2\" 2>errs.log 1>out2.png", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 500 \"-3*pi\" \"2*pi\" 500 \"y^2-SIN(x)^2\" 2>errs.log 1>out3.png", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 500 \"-pi/2\" \"pi/2\" 500 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log 1>out4.png", argv[0]);
+        example("%s \"-pi\" \"1\" 500 \"-2\" \"2\" 500 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log 1>out5.png", argv[0]);
+        example("%s \"-1\" \"pi/2\" 500 \"-1\" \"1\" 500 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log 1>out6.png", argv[0]);
+        example("%s \"0\" \"3\" 500 \"0\" \"9\" 500 \"y-SQRT(X)\" 2>errs.log 1>out7.png", argv[0]);
+        example("%s \"0\" \"1\" 500 \"0\" \"1\" 500 \"y-X\" 2>errs.log 1>out8.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)+SIN(Y)\" 2>errs.log 1>out9.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)*SIN(Y)\" 2>errs.log 1>out10.png", argv[0]);
+        example("%s \"-4\" \"4\" \"500\" \"0\" \"2*pi\" \"500\" \"y-5*EXP(-x)*SIN(6*x)\" 2>errs.log 1>out11.png", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
@@ -414,38 +444,41 @@ int main(int argc, char **argv) {
     memset(rgba, 255, sizeof(unsigned char) * (w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL)*(h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL)*4);
     unsigned char *p = rgba;
     p += 4*TOP_MARGIN*(w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL);
+    number_t dx = (x2-x1)/w;
+    number_t dy = (_y2-_y1)/h;
+    
     for(int i = 0; i < h+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL; i++) {
         p+=4*LEFT_MARGIN;
         for(int j = 0; j < w+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL; j++) {
             logger(DEBUG_LOG, "x = %lf, y = %lf", j, i);
-            double val = DBL_MAX;
+            number_t val = LDBL_MAX;
             for(char **expr = argv + 7; *expr; expr++) {
-                val = fmin(val, fabs(eval((_y1-_y2)/h*(i-TOP_EXTRA_PIXEL)+_y2, (x2-x1)/w*(j-LEFT_EXTRA_PIXEL)+x1, *expr)));
-            }
-//            if(val < ACCURACY) {
-//                *(p++) = (unsigned char) round(R * 0);
-//                *(p++) = (unsigned char) round(G * 0);
-//                *(p++) = (unsigned char) round(B * 0);
-//                *(p++) = (unsigned char) round(A * 1);
-//            } else {
-//                p+=4;
-//            }
-            long cur = (p - rgba);
-            long line = (w+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL);
-            long line_cnt = (h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL);
-            int k = Y_PAINTERSIZE;
-            if(val < ACCURACY)
-                while(k--) {
-                    unsigned char *move = p + max(min(+X_PAINTERSIZE * 2 + line * (2*k-Y_PAINTERSIZE) * 2, 4*line_cnt*line - cur), 0);
-                    unsigned char  *end = p + max(min(-X_PAINTERSIZE * 2 + line * (2*k-Y_PAINTERSIZE) * 2, 4*line_cnt*line - cur), 0);
-                    while(move != end) {
-                        *(--move) = (unsigned char)round(A*1);
-                        *(--move) = (unsigned char)round(B*0);
-                        *(--move) = (unsigned char)round(G*0);
-                        *(--move) = (unsigned char)round(R*0);
-                    }
+                number_t value = eval(-dy*(i-TOP_EXTRA_PIXEL)+_y2, dx*(j-LEFT_EXTRA_PIXEL)+x1, *expr);
+                val = fabsl(value);
+                if(val <= dy+dx) break;
+                number_t dzx = min(
+                    floorl(fabsl(eval(-dy*(i-TOP_EXTRA_PIXEL)+_y2, dx*(j-1-LEFT_EXTRA_PIXEL)+x1, *expr) - value) / dx),
+                    10
+                );
+                number_t dzy = min(ceill(fabsl(eval((_y1-_y2)/h*(i-1-TOP_EXTRA_PIXEL)+_y2, (x2-x1)/w*(j-LEFT_EXTRA_PIXEL)+x1, *expr) - value) / dy), 10);
+                logger(DEBUG_LOG, "dzx = %llf", dzx);
+                // logger(ERR_LOG, "dzy = %llf", dzy);
+                for(int divx = 1; divx < dzx; divx++) {
+                    // for(int divy = 1; divy < dzy; divy++) {
+                        val = min(val, fabsl(eval(-dy*(i-TOP_EXTRA_PIXEL+divx/dzx)+_y2, dx*(j-LEFT_EXTRA_PIXEL + divx/dzx)+x1, *expr)));
+                        if(val <= dy+dx) goto draw;
+                    // }
                 }
-            p += 4;
+            }
+            draw:
+            if(val <= dy+dx) {
+               *(p++) = (unsigned char) round(R * 0);
+               *(p++) = (unsigned char) round(G * 0);
+               *(p++) = (unsigned char) round(B * 0);
+               *(p++) = (unsigned char) round(A * 1);
+           } else {
+               p+=4;
+           }
         }
         p+=4*RIGHT_MARGIN;
     }
@@ -460,21 +493,22 @@ int main(int argc, char **argv) {
     logger(INFO_LOG, "Char Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
     if(argc < 8) {
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
-        logger(INFO_LOG, "%s -1 1 0.125 -1 1 0.0625 \"x*x+y*y-1\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log", argv[0]);
-        logger(INFO_LOG, "%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log", argv[0]);
+        example("%s -1 1 0.125 -1 1 0.0625 \"x*x+y*y-1\" 2>errs.log 1>out1", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2\" 2>errs.log 1>out2", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log 1>out3", argv[0]);
+        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log 1>out4", argv[0]);
+        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log 1>out5", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2\" 2>errs.log 1>out6", argv[0]);
+        example("%s \"-4\" \"4\" \"8/32\" \"0\" \"2*pi\" \"2*pi/64\" \"y-5*EXP(-x)*SIN(6*x)\" 2>errs.log 1>out7", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
-    for(double i = _y2; i >= _y1; ) {
-        for(double j = x1; j <= x2; ) {
+    for(number_t i = _y2; i >= _y1; ) {
+        for(number_t j = x1; j <= x2; ) {
             logger(DEBUG_LOG, "x = %lf, y = %lf", j, i);
             bool ok = true;
             for(char **expr = argv + 7; *expr; expr++) {
-                double val = eval(i, j, *expr);
+                number_t val = eval(i, j, *expr);
                 if(val >= 0) {
                     ok = false;
                     break;
