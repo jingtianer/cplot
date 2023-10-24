@@ -57,7 +57,7 @@ int example(const char *format, ...) {
     vsprintf(str, format, args);
     va_end(args);
     system(str);
-    logger(INFO_LOG, "%s", str);
+    logger(INFO_LOG, "\t%s", str);
     free(str);
 }
 number_t x1, x2, _y1, _y2, s1, s2;
@@ -422,18 +422,18 @@ void INIT(char **argv) {
 int main(int argc, char **argv) {
     if(argc < 8) {
         char *str;
-        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
+        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
         example("%s -1 1 500 -1 1 500 \"x*x+y*y-1\" 2>errs.log 1>out1.png", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 500 \"-3*pi\" \"2*pi\" 500 \"y^2-SIN(x+y)^2\" 2>errs.log 1>out2.png", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 500 \"-3*pi\" \"2*pi\" 500 \"y^2-SIN(x)^2\" 2>errs.log 1>out3.png", argv[0]);
         example("%s \"-2\" \"ACOS(1/2)-pi/4\" 500 \"-pi/2\" \"pi/2\" 500 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log 1>out4.png", argv[0]);
         example("%s \"-pi\" \"1\" 500 \"-2\" \"2\" 500 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log 1>out5.png", argv[0]);
         example("%s \"-1\" \"pi/2\" 500 \"-1\" \"1\" 500 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log 1>out6.png", argv[0]);
-        example("%s \"0\" \"3\" 500 \"0\" \"9\" 500 \"y-SQRT(X)\" 2>errs.log 1>out7.png", argv[0]);
-        example("%s \"0\" \"1\" 500 \"0\" \"1\" 500 \"y-X\" 2>errs.log 1>out8.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)+SIN(Y)\" 2>errs.log 1>out9.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)*SIN(Y)\" 2>errs.log 1>out10.png", argv[0]);
-        example("%s \"-4\" \"4\" \"500\" \"0\" \"2*pi\" \"500\" \"y-5*EXP(-x)*SIN(6*x)\" 2>errs.log 1>out11.png", argv[0]);
+        example("%s \"-4\" \"4\" \"500\" \"0\" \"2*pi\" \"500\" \"y-5*EXP(-x)*SIN(6*x)\" 2>errs.log 1>out7.png", argv[0]);
+        example("%s \"0\" \"3\" 500 \"0\" \"9\" 500 \"y-SQRT(X)\" 2>errs.log 1>out8.png", argv[0]);
+        example("%s \"0\" \"1\" 500 \"0\" \"1\" 500 \"y-X\" 2>errs.log 1>out9.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)+SIN(Y)\" 2>errs.log 1>out10.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 500 \"-1.5*pi\" \"4.5*pi\" 500 \"SIN(X)*SIN(Y)\" 2>errs.log 1>out11.png", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
@@ -492,14 +492,18 @@ int main(int argc, char **argv) {
 int main(int argc, char **argv) {
     logger(INFO_LOG, "Char Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
     if(argc < 8) {
-        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression", argv[0]);
+        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
         example("%s -1 1 0.125 -1 1 0.0625 \"x*x+y*y-1\" 2>errs.log 1>out1", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2\" 2>errs.log 1>out2", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log 1>out3", argv[0]);
-        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log 1>out4", argv[0]);
-        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log 1>out5", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2\" 2>errs.log 1>out6", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2\" 2>errs.log 1>out3", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)\" 2>errs.log 1>out4", argv[0]);
+        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y\" \"y-SQRT(1-(FABS(x)-1)^2)\" 2>errs.log 1>out5", argv[0]);
+        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1\" 2>errs.log 1>out6", argv[0]);
         example("%s \"-4\" \"4\" \"8/32\" \"0\" \"2*pi\" \"2*pi/64\" \"y-5*EXP(-x)*SIN(6*x)\" 2>errs.log 1>out7", argv[0]);
+        example("%s \"0\" \"3\" \"3/32\" \"0\" \"9\" \"9/32\" \"y-SQRT(X)\" 2>errs.log 1>out8", argv[0]);
+        example("%s \"0\" \"1\" \"1/32\" \"0\" \"1\" \"1/32\" \"y-X\" 2>errs.log 1>out9", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"SIN(X)+SIN(Y)\" 2>errs.log 1>out10", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/64\" \"SIN(X)*SIN(Y)\" 2>errs.log 1>out11", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
