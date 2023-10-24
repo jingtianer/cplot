@@ -1,0 +1,6 @@
+*.log
+out*
+*.png
+heart
+cmake-build-debug
+.idea
