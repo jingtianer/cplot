@@ -482,10 +482,14 @@ void INIT(char** argv) {
 #define RIGHT_EXTRA_PIXEL   10
 #define TOP_EXTRA_PIXEL     10
 #define END_EXTRA_PIXEL     10
-#define R 0
-#define G 0
-#define B 0
+#define R 0x00
+#define G 0xB2
+#define B 0xEE
 #define A 255
+#define BG_R 0xFF
+#define BG_G 0xEA
+#define BG_B 0xE1
+#define BG_A 255
 #define PAINTERSIZE 3
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
@@ -509,7 +513,14 @@ void plot_png(char** argv) {
     //    int w = ceill(s2);
     logger(DEBUG_LOG, "x = %d, y = %d", h, w);
     unsigned char* rgba = malloc(sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) * (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL) * 4);
-    memset(rgba, 255, sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) * (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL) * 4);
+    // memset(rgba, 255, sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) * (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL) * 4);
+    unsigned char *p = rgba;
+    for(int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) * (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL); i++) {
+        *p++ = BG_R;
+        *p++ = BG_G;
+        *p++ = BG_B;
+        *p++ = BG_A;
+    }
     number_t dx = deltaX / w;
     number_t dy = deltaY / h;
     accu = max(dx, dy);
