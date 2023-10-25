@@ -64,6 +64,9 @@ int example(const char* format, ...) {
     va_end(args);
     system(str);
     logger(INFO_LOG, "\t%s", str);
+    char * show;
+    alloc_sprintf(&show, "open ./%s",strrchr(str, '>')+1);
+    system(show);
     free(str);
     return len;
 }
@@ -605,6 +608,12 @@ int main(int argc, char** argv) {
         example("%s \"-pi\" \"1\" 400 \"-2\" \"2\" 400 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png", argv[0]);
         example("%s \"-1\" \"2\" 400 \"-1\" \"4\" 400 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png", argv[0]); // 求交点的情况 and
         example("%s \"-1\" \"2\" 400 \"-1\" \"4\" 400 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png", argv[0]); // 求交点的情况 or
+        example("%s \"-2*pi\" \"2*pi\" \"1000\" \"-2*pi\" \"2*pi\" \"1000\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png", argv[0]);
+        example("%s \"-pi\" \"pi\" \"1000\" \"-pi\" \"pi\" \"1000\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png", argv[0]);
+        example("%s \"-pi\" \"pi\" \"1000\" \"-pi\" \"pi\" \"1000\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png", argv[0]);
+        example("%s \"-4\" \"4\" \"400\" \"-4\" \"4\" \"400\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
+        example("%s \"-4*pi\" \"4*pi\" \"1000\" \"-4*pi\" \"4*pi\" \"1000\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png", argv[0]);
+        example("%s \"-4*pi\" \"4*pi\" \"1000\" \"-4*pi\" \"4*pi\" \"1000\" \"SIN(X*Y)=0\" 2>errs.log 1>out21.png", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
