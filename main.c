@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 500
+#define _POSIX_C_SOURCE 200809L
 #define _C99_SOURCE
 #include "svpng/svpng.inc"
 #include <stdio.h>
@@ -63,6 +64,7 @@ int example(const char *format, ...) {
     system(str);
     logger(INFO_LOG, "\t%s", str);
     free(str);
+    return len;
 }
 number_t x1, x2, _y1, _y2, s1, s2;
 
@@ -172,9 +174,9 @@ void pushOP(char cur_op) {
 int len_strncmp(const char *a, const char *b) {
     return strncmp(a, b, strlen(b));
 } 
-number_t _eval(number_t y, number_t x, const char *expr) {
-    int len = strlen(expr);
-    int i = 0;
+number_t eval_value(number_t y, number_t x, const char *expr) {
+    size_t len = strlen(expr);
+    size_t i = 0;
     stack_ptr = 0;
     op_stack_ptr = 0;
     while(i < len) {
@@ -420,18 +422,18 @@ bool eval_cmp(number_t y, number_t x, char *expr, number_t *z) {
         logger(ERR_LOG, "invalid expression, invalid comparision operators state: %d", state);
     }
     logger(DEBUG_LOG, "compare state: %04x", state);
-    number_t n1 = _eval(y, x, expr);
-    number_t n2 = _eval(y, x, expr + i);
+    number_t n1 = eval_value(y, x, expr);
+    number_t n2 = eval_value(y, x, expr + i);
     if(z) *z = n1-n2;
     switch (state) {
         case 1: // <
-        return n1 < n2 && !fabsl(n1 - n2) < accu;
+        return n1 < n2 && !(fabsl(n1 - n2) < accu);
         break;
         case 2: // =
         return fabsl(n1 - n2) < accu;
         break;
         case 4: // >
-        return n1 > n2 && !fabsl(n1 - n2) < accu;
+        return n1 > n2 && !(fabsl(n1 - n2) < accu);
         break;
         case 3: // <= 
         return n1 < n2 || fabsl(n1 - n2) < accu;
@@ -470,12 +472,12 @@ bool eval(number_t y, number_t x, const char *_expr, number_t *z) {
 
 void INIT(char **argv) {
     int i = 0;
-    _y1 = _eval(0, 0, argv[i++]);
-    _y2 = _eval(0, 0, argv[i++]);
-    s1 = _eval(0, 0, argv[i++]);
-    x1 = _eval(0, 0, argv[i++]);
-    x2 = _eval(0, 0, argv[i++]);
-    s2 = _eval(0, 0, argv[i++]);
+    _y1 = eval_value(0, 0, argv[i++]);
+    _y2 = eval_value(0, 0, argv[i++]);
+    s1 = eval_value(0, 0, argv[i++]);
+    x1 = eval_value(0, 0, argv[i++]);
+    x2 = eval_value(0, 0, argv[i++]);
+    s2 = eval_value(0, 0, argv[i++]);
     logger(DEBUG_LOG, "%lf, %lf, %lf, %lf, %lf, %lf\n", _y1, _y2, s1, x1, x2, s2);
 }
 #define LEFT_MARGIN     10
@@ -490,14 +492,14 @@ void INIT(char **argv) {
 #define G 0
 #define B 0
 #define A 255
-#define PAINTERSIZE 6
+#define PAINTERSIZE 3
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #ifndef USE_CHAR
 void draw(unsigned char *rgba, int i, int j, int w, int h, int radius) {
     for(int y = max(-radius, -i); y <= min(radius, h - i -1); y++) {
-        for(int x = max(-radius, -j); x < min(radius, w - i - 1); x++) {
-            if(x*x + y*y > radius) continue;
+        for(int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
+            if(sqrt(x*x + y*y) > radius) continue;
             unsigned char *p = rgba + 4*w*(i+y) + 4*(j+x);
             *p++ = R;
             *p++ = G;
@@ -510,28 +512,28 @@ int main(int argc, char **argv) {
     if(argc < 8) {
         char *str;
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
-        example("%s -1 1 300 -1 1 300 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\" 2>errs.log 1>out2.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\" 2>errs.log 1>out3.png", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 300 \"-pi/2\" \"pi/2\" 300 \"y*y+x*x+y-SQRT(y*y+x*x)=0\" 2>errs.log 1>out4.png", argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\" 2>errs.log 1>out5.png", argv[0]);
-        example("%s \"-1\" \"pi/2\" 300 \"-1\" \"1\" 300 \"x*x+(y-FABS(x)^2.0^(1/3.0))^2-1=0\" 2>errs.log 1>out6.png", argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"0\" \"2*pi\" \"300\" \"y-5*EXP(-x)*SIN(6*x)=0\" 2>errs.log 1>out7.png", argv[0]);
-        example("%s \"0\" \"3\" 300 \"0\" \"9\" 300 \"y-SQRT(9-x)=0\" 2>errs.log 1>out8.png", argv[0]);
-        example("%s \"0\" \"1\" 300 \"0\" \"1\" 300 \"y-X=0\" 2>errs.log 1>out9.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)+SIN(Y)=0\" 2>errs.log 1>out10.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)*SIN(Y)=0\" 2>errs.log 1>out11.png", argv[0]);
-        example("%s \"-8*pi\" \"8*pi\" 300 \"-8*pi\" \"8*pi\" 300 \"COS(x+SIN(y))-TAN(y)=0\" 2>errs.log 1>out12.png", argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png", argv[0]);
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png", argv[0]); // 求交点的情况 and
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png", argv[0]); // 求交点的情况 or
+        example("%s -1 1 400 -1 1 400 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 400 \"-3*pi\" \"2*pi\" 400 \"y^2-SIN(x+y)^2=0\" 2>errs.log 1>out2.png", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 400 \"-3*pi\" \"2*pi\" 400 \"y^2-SIN(x)^2=0\" 2>errs.log 1>out3.png", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 400 \"-pi/2\" \"pi/2\" 400 \"y*y+x*x+y-SQRT(y*y+x*x)=0\" 2>errs.log 1>out4.png", argv[0]);
+        example("%s \"-pi\" \"1\" 400 \"-2\" \"2\" 400 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\" 2>errs.log 1>out5.png", argv[0]);
+        example("%s \"-1\" \"pi/2\" 400 \"-1\" \"1\" 400 \"x*x+(y-FABS(x)^(2/3.0))^2-1=0\" 2>errs.log 1>out6.png", argv[0]);
+        example("%s \"-4\" \"4\" \"400\" \"0\" \"2*pi\" \"400\" \"y-5*EXP(-x)*SIN(6*x)=0\" 2>errs.log 1>out7.png", argv[0]);
+        example("%s \"0\" \"3\" 400 \"0\" \"9\" 400 \"y-SQRT(9-x)=0\" 2>errs.log 1>out8.png", argv[0]);
+        example("%s \"0\" \"1\" 400 \"0\" \"1\" 400 \"y-X=0\" 2>errs.log 1>out9.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 400 \"-1.5*pi\" \"4.5*pi\" 400 \"SIN(X)+SIN(Y)=0\" 2>errs.log 1>out10.png", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 400 \"-1.5*pi\" \"4.5*pi\" 400 \"SIN(X)*SIN(Y)=0\" 2>errs.log 1>out11.png", argv[0]);
+        example("%s \"-8*pi\" \"8*pi\" 400 \"-8*pi\" \"8*pi\" 400 \"COS(x+SIN(y))-TAN(y)=0\" 2>errs.log 1>out12.png", argv[0]);
+        example("%s \"-pi\" \"1\" 400 \"-2\" \"2\" 400 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png", argv[0]);
+        example("%s \"-1\" \"2\" 400 \"-1\" \"4\" 400 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png", argv[0]); // 求交点的情况 and
+        example("%s \"-1\" \"2\" 400 \"-1\" \"4\" 400 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png", argv[0]); // 求交点的情况 or
         exit(0);
     }
     INIT(argv + 1);
-    // u_int64_t h = (u_int64_t)ceill(s1*((_y2-_y1)>(x2-x1)?((_y2-_y1)/(x2-x1)):1));
-    // u_int64_t w = (u_int64_t)ceill(s2*((_y2-_y1)>(x2-x1)?1:((x2-x1)/(_y2-_y1))));
-    int h = ceill(s1);
-    int w = ceill(s2);
+    int h = (int)ceill(s1*( (_y2-_y1)>(x2-x1) ? ((_y2-_y1)/(x2-x1)) : 1 ));
+    int w = (int)ceill(s2*( (_y2-_y1)>(x2-x1) ? 1 : ((x2-x1)/(_y2-_y1)) ));
+//    int h = ceill(s1);
+//    int w = ceill(s2);
     // logger(ERR_LOG, "x = %d, y = %d", h, w);
     unsigned char *rgba = malloc(sizeof(unsigned char) * (w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL)*(h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL)*4);
     memset(rgba, 255, sizeof(unsigned char) * (w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL)*(h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL)*4);
@@ -542,16 +544,18 @@ int main(int argc, char **argv) {
         for(int j = 0; j < w+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL; j++) {
             logger(DEBUG_LOG, "x = %lf, y = %lf", j, i);
             bool ok = false;
-            number_t z0 = LDBL_MAX, z1;
+            number_t z0 = LDBL_MAX, z11, z12;
             for(char **expr = argv + 7; *expr; expr++) {
                 ok = eval(-dy*(i-TOP_EXTRA_PIXEL)+_y2, dx*(j-LEFT_EXTRA_PIXEL)+x1, *expr, &z0);
                 if(ok) break;
-                ok = eval(-dy*(i-TOP_EXTRA_PIXEL)+_y2, dx*(j-1-LEFT_EXTRA_PIXEL)+x1, *expr, &z1);
+                ok = eval(-dy*(i-TOP_EXTRA_PIXEL)+_y2, dx*(j-1-LEFT_EXTRA_PIXEL)+x1, *expr, &z11);
                 if(ok) break;
-                number_t dzx = min(floorl(fabsl(z1 - z0) / dx), 10);
-                number_t dzy = min(floorl(fabsl(z1 - z0) / dy), 10);
+//                ok = eval(-dy*(i-1-TOP_EXTRA_PIXEL)+_y2, dx*(j-LEFT_EXTRA_PIXEL)+x1, *expr, &z12);
+//                if(ok) break;
+                number_t dzx = min(floorl(fabsl(z11 - z0) / dx), 4);
+//                number_t dzy = min(floorl(fabsl(z12 - z0) / dy), 4);
                 logger(DEBUG_LOG, "dzx = %llf", dzx);
-                logger(DEBUG_LOG, "dzy = %llf", dzy);
+//                logger(DEBUG_LOG, "dzy = %llf", dzy);
                 for(int divx = -dzx; divx < dzx; divx++) {
                     //for(int divy = -dzy; divy < 2*dzy; divy++) {
                         ok = eval(-dy*(i-TOP_EXTRA_PIXEL+divx/dzx)+_y2, dx*(j-LEFT_EXTRA_PIXEL + divx/dzx)+x1, *expr, NULL);
@@ -569,14 +573,16 @@ int main(int argc, char **argv) {
                     PAINTERSIZE
                 );
            }
+
         }
     }
+
     svpng(
-        stdout, 
-        w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL, 
-        h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL, 
-        rgba, 
-        1
+            stdout,
+            w+LEFT_MARGIN+RIGHT_MARGIN+LEFT_EXTRA_PIXEL+RIGHT_EXTRA_PIXEL,
+            h+TOP_MARGIN+END_MARGIN+TOP_EXTRA_PIXEL+END_EXTRA_PIXEL,
+            rgba,
+            1
     );
     free(rgba);
     return 0;
