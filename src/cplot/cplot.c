@@ -1,115 +1,73 @@
 #define _XOPEN_SOURCE 500
 #define _POSIX_C_SOURCE 200809L
 #define _C99_SOURCE
-#include "config.h"
-#include "svpng/svpng.inc"
 #include <stdio.h>
 #include <math.h>
-#include <stdbool.h>
-#include <errno.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h>
-#include <stdarg.h>
 #include <float.h>
 
-typedef long double number_t;
+#include "../../svpng/svpng.inc"
+#include "../logger/logger.h"
+#include "include/cplot.h"
+static number_t x1, x2, _y1, _y2, s1, s2;
+static number_t deltaX, deltaY;
 
-void logger(int level, const char* format, ...) {
-    if (level > LOG_LEVEL) return;
-    va_list args;
-    va_start(args, format);
-    int len = vsnprintf(NULL, 0, format, args) + 1;
-    va_end(args);
-    va_start(args, format);
-    char* str = malloc(len);
-    vsprintf(str, format, args);
-    va_end(args);
-    fprintf(stderr, "%s\n", str);
-    free(str);
-    if (level == ERR_LOG) {
-        exit(1);
-    }
+static unsigned int brush_size = 0;
+static unsigned int bg_color = 0xFFFFFFFF;
+static unsigned int brush_color = 0x000000FF;
+static unsigned char R = 0x00, G = 0x00, B = 0x00, A = 0x00;
+static unsigned char BG_R = 0xFF, BG_G = 0xFF, BG_B = 0xFF, BG_A = 0xFF;
+#define SET(x, type) void set_##x(type n)
+#define SETImpl(x, type, formatter) SET(x, type) { x = n; logger(DEBUG_LOG, "set " #x " = " formatter, x); }
+SETImpl(brush_size, u_int32_t, "%u");
+SETImpl(R, u_int8_t, "%u");
+SETImpl(G, u_int8_t, "%u");
+SETImpl(B, u_int8_t, "%u");
+SETImpl(A, u_int8_t, "%u");
+SETImpl(BG_R, u_int8_t, "%u");
+SETImpl(BG_G, u_int8_t, "%u");
+SETImpl(BG_B, u_int8_t, "%u");
+SETImpl(BG_A, u_int8_t, "%u");
+SET(brush_color, u_int32_t) {
+    brush_color = n;
+    R = (n >> (3 << 3)) & 0xff;
+    G = (n >> (2 << 3)) & 0xff;
+    B = (n >> (1 << 3)) & 0xff;
+    A = (n >> (0 << 3)) & 0xff;
+    logger(DEBUG_LOG, "set brush_color = %u", brush_color);
+}
+SET(bg_color, u_int32_t) {
+    bg_color = n;
+    BG_R = (n >> (3 << 3)) & 0xff;
+    BG_G = (n >> (2<< 3)) & 0xff;
+    BG_B = (n >> (1 << 3)) & 0xff;
+    BG_A = (n >> (0 << 3)) & 0xff;
+    logger(DEBUG_LOG, "set bg_color = %u", bg_color);
+}
+u_int32_t LEFT_MARGIN, RIGHT_MARGIN, LEFT_PADDING, RIGHT_PADDING,
+TOP_MARGIN, END_MARGIN, TOP_PADDING, END_PADDING;
+u_int32_t padding, margin;
 
+SET(margin, u_int32_t) {
+    margin = LEFT_MARGIN = RIGHT_MARGIN = TOP_MARGIN = END_MARGIN = n;
+    logger(DEBUG_LOG, "set margin = %u", margin);
 }
 
-int alloc_sprintf(char** level, const char* format, ...) {
-    if (level == NULL) return 0;
-    va_list args;
-    va_start(args, format);
-    int len = vsnprintf(NULL, 0, format, args) + 1;
-    va_end(args);
-    va_start(args, format);
-    *level = malloc(len);
-    vsprintf(*level, format, args);
-    va_end(args);
-    return len;
+SET(padding, u_int32_t) {
+    padding = LEFT_PADDING = RIGHT_PADDING = TOP_PADDING = END_PADDING = n;
+    logger(DEBUG_LOG, "set padding = %u", padding);
 }
+SETImpl(LEFT_MARGIN, u_int32_t, "%u");
+SETImpl(RIGHT_MARGIN, u_int32_t, "%u");
+SETImpl(TOP_MARGIN, u_int32_t, "%u");
+SETImpl(END_MARGIN, u_int32_t, "%u");
 
-typedef enum platform_t {
-    platform_apple = 1,
-    platform_win32,
-    platform_win64,
-    platform_android,
-    platform_linux,
-    platform_unix,
-    platform_posix,
-    platform_other
-} platform_t;
-
-platform_t platform() {
-#ifdef _WIN32
-#ifdef _WIN64
-    return platform_win64;
-#else
-    return platform_win32;
-#endif
-#elif __APPLE__
-    return platform_apple;
-#elif __ANDROID__
-    return platform_android;
-#elif __linux__
-    return platform_linux;
-#elif __unix__ // all unices not caught above
-    return platform_unix;
-#elif defined(_POSIX_VERSION)
-    return platform_posix;
-#else
-    return platform_other;
-#endif
-}
-
-int example(const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    int len = vsnprintf(NULL, 0, format, args) + 1;
-    va_end(args);
-    va_start(args, format);
-    char* str = malloc(len);
-    vsprintf(str, format, args);
-    va_end(args);
-#ifdef EXEC_EXAMPLES
-    system(str);
-#endif
-    logger(INFO_LOG, "\t%s", str);
-#ifdef OPEN_EXAMPLES
-    if (platform() == platform_apple || platform() == platform_linux) {
-        char* show;
-        alloc_sprintf(&show, "open ./%s", strrchr(str, '>') + 1);
-        system(show);
-        free(show);
-    } else if (platform() == platform_win32 || platform() == platform_win64) {
-        char* show;
-        alloc_sprintf(&show, "./%s", strrchr(str, '>') + 1);
-        system(show);
-        free(show);
-    }
-#endif
-    free(str);
-    return len;
-}
-
-number_t x1, x2, _y1, _y2, s1, s2;
-number_t deltaX, deltaY;
+SETImpl(LEFT_PADDING, u_int32_t, "%u");
+SETImpl(RIGHT_PADDING, u_int32_t, "%u");
+SETImpl(TOP_PADDING, u_int32_t, "%u");
+SETImpl(END_PADDING, u_int32_t, "%u");
 
 #define PUSH(s, n) (s[s##_ptr++] = (n))
 #define POP(s, n) (n = s[--s##_ptr])
@@ -156,7 +114,7 @@ static int priv[128] = {
 static int stack_ptr = 0;
 static int op_stack_ptr = 0;
 
-void logStack() {
+void static logStack() {
     logger(DEBUG_LOG, "op_stack: ");
     for (int cnt = 0; cnt < op_stack_ptr; cnt++) {
         logger(DEBUG_LOG, "%c ", op_stack[cnt]);
@@ -168,14 +126,14 @@ void logStack() {
     logger(DEBUG_LOG, "");
 }
 
-void biCheck() {
+void static biCheck() {
     if (EMPTY(stack)) {
         logger(ERR_LOG, "empty stack!");
         exit(1);
     }
 }
 
-void pushOP(char cur_op) {
+void static pushOP(char cur_op) {
     number_t n1, n2;
     char op;
     while (!EMPTY(op_stack) && priv[TOP(op_stack, op)] >= priv[cur_op]) {
@@ -218,7 +176,7 @@ void pushOP(char cur_op) {
     }
 }
 
-int len_strncmp(const char* a, const char* b) {
+int static len_strncmp(const char* a, const char* b) {
     return strncmp(a, b, strlen(b));
 }
 
@@ -525,23 +483,31 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
     return ret;
 }
 
-void INIT(char** argv) {
-    int i = 0;
-    _y1 = eval_value(0, 0, argv[i++]);
-    _y2 = eval_value(0, 0, argv[i++]);
-    s1 = eval_value(0, 0, argv[i++]);
-    x1 = eval_value(0, 0, argv[i++]);
-    x2 = eval_value(0, 0, argv[i++]);
-    s2 = eval_value(0, 0, argv[i++]);
+void init(char** argv) {
+    _y1 = eval_value(0, 0, *argv++);
+    _y2 = eval_value(0, 0, *argv++);
+    s1 =  eval_value(0, 0, *argv++);
+    x1 =  eval_value(0, 0, *argv++);
+    x2 =  eval_value(0, 0, *argv++);
+    s2 =  eval_value(0, 0, *argv++);
     deltaX = x2 - x1;
     deltaY = _y2 - _y1;
-    logger(DEBUG_LOG, "%Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, s1, x1, x2, s2);
+    logger(DEBUG_LOG, "init: %Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, s1, x1, x2, s2);
 }
-
+#define INIT(x) void init_##x(number_t n)   
+#define INIT_IMPL(x) INIT(x) {x = n; logger(DEBUG_LOG, #x " = %lE", n);}
+INIT_IMPL(_y1)
+INIT_IMPL(_y2)
+INIT_IMPL(s1)
+INIT_IMPL(x1)
+INIT_IMPL(x2)
+INIT_IMPL(s2)
+INIT_IMPL(deltaX)
+INIT_IMPL(deltaY)
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-void draw(unsigned char* rgba, int i, int j, int w, int h, int radius) {
+void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius) {
     for (int y = max(-radius, -i); y <= min(radius, h - i - 1); y++) {
         for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
             if (sqrt(x * x + y * y) > radius) continue;
@@ -567,6 +533,8 @@ void plot_png(char** argv) {
     unsigned char* rgba = malloc(
         sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
         (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
+    if(rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
     //    number_t *z_cache = malloc(
     //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
     //            (h + TOP_PADDING + END_PADDING + 2) * expr_cnt), *z_cache_ptr;
@@ -609,7 +577,7 @@ void plot_png(char** argv) {
                     //                    zx = *(zptr + off[offi]*expr_cnt);
                     eval(-dy * (i - TOP_PADDING) + _y2,
                         dx * (j - LEFT_PADDING + off[offi]) + x1, *expr, &zx);
-                    dzx = (zx - z0) / dx;
+                    dzx = (zx + z0) / dx;
                     accu = max(accu, fabsl(z0 - zx));
                     //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
                 }
@@ -655,7 +623,7 @@ void plot_png(char** argv) {
                     i + TOP_MARGIN, j + LEFT_MARGIN,
                     w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
                     h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
-                    BRUSH_SIZE
+                    brush_size
                 );
             }
         }
@@ -673,127 +641,3 @@ void plot_png(char** argv) {
     free(rgba);
     //    free(z_cache);
 }
-
-#ifdef tupper
-
-int main(int argc, char** argv) {
-    if (argc != 3) {
-        char* str;
-        logger(INFO_LOG, "Usage: %s sy sx expression\nexamples:", argv[0]);
-        example("%s 800 800 2>errs.log 1>tupper.png", argv[0]);
-        exit(0);
-    }
-    char* expr = strdup("1/2<FLOOR((FLOOR(y/17)*2^(-17*FLOOR(X)-FLOOR(y)%17))%2)");
-    number_t k = eval_value(0, 0, "4858450636189713423582095962494202044581400587983244549483093085061934704708809928450644769865524364849997247024915119110411605739177407856919754326571855442057210445735883681829823754139634338225199452191651284348332905131193199953502413758765239264874613394906870130562295813219481113685339535565290850023875092856892694555974281546386510730049106723058933586052544096664351265349363643957125565695936815184334857605266940161251266951421550539554519153785457525756590740540157929001765967965480064427829131488548259914721248506352686630476300");
-    _y1 = k;
-    _y2 = k + 17;
-    x1 = 0;
-    x2 = 107;
-    deltaX = 107;
-    deltaY = 17;
-    s1 = eval_value(0, 0, argv[1]);
-    s2 = eval_value(0, 0, argv[2]);
-    char* plot_args[] = { expr, NULL };
-    plot_png(plot_args);
-    free(expr);
-    return 0;
-}
-#else
-
-#ifndef USE_CONSOLE
-
-int main(int argc, char** argv) {
-    if (argc < 8) {
-        char* str;
-        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sx expression\nexamples:", argv[0]);
-        example("%s \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\" 2>errs.log 1>out2.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\" 2>errs.log 1>out3.png", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 300 \"-pi/2\" \"pi/2\" 300 \"y*y+x*x+y-SQRT(y*y+x*x)=0\" 2>errs.log 1>out4.png",
-            argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\" 2>errs.log 1>out5.png",
-            argv[0]);
-        example("%s \"-1\" \"pi/2\" 300 \"-1\" \"1\" 300 \"x*x+(y-FABS(x)^(2/3.0))^2-1=0\" 2>errs.log 1>out6.png",
-            argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"0\" \"2*pi\" \"300\" \"y-5*EXP(-x)*SIN(6*x)=0\" 2>errs.log 1>out7.png",
-            argv[0]);
-        example("%s \"0\" \"3\" 300 \"0\" \"9\" 300 \"y-SQRT(9-x)=0\" 2>errs.log 1>out8.png", argv[0]);
-        example("%s \"0\" \"1\" 300 \"0\" \"1\" 300 \"y-X=0\" 2>errs.log 1>out9.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)+SIN(Y)=0\" 2>errs.log 1>out10.png",
-            argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)*SIN(Y)=0\" 2>errs.log 1>out11.png",
-            argv[0]);
-        example("%s \"-8*pi\" \"8*pi\" 300 \"-8*pi\" \"8*pi\" 300 \"COS(x+SIN(y))-TAN(y)=0\" 2>errs.log 1>out12.png",
-            argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png",
-            argv[0]);
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png",
-            argv[0]); // 求交点的情况 and
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png",
-            argv[0]); // 求交点的情况 or
-        example("%s \"-2*pi\" \"2*pi\" \"800\" \"-2*pi\" \"2*pi\" \"800\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png",
-            argv[0]);
-        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png",
-            argv[0]);
-        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
-            argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
-        example("%s \"-4*pi\" \"4*pi\" \"800\" \"-4*pi\" \"4*pi\" \"800\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
-            argv[0]);
-        example("%s \"-1\" 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\" 2>errs.log 1>out21.png", argv[0]);
-        example("%s \"-1\" 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\" 2>errs.log 1>out22.png", argv[0]);
-        example("%s \"-3*pi/2\" \"3*pi/2\" 300 \"-3*pi/2\" \"3*pi/2\" 300 \"SIN(x*x)+SIN(y*y)=1\"  2>errs.log 1>out23.png",
-            argv[0]);
-        example("%s \"-10\" \"10\" 2000 \"-10\" \"10\" 2000 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
-        example("%s \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\" 2>errs.log 1>out25.png", argv[0]);
-        example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\" 2>errs.log 1>out26.png", argv[0]);
-        exit(0);
-    }
-    INIT(argv + 1);
-    plot_png(argv + 7);
-    return 0;
-}
-
-#else
-int main(int argc, char** argv) {
-    if (argc < 8) {
-        logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
-        example("%s \"-1\" 1 0.125 -1 1 0.0625 \"x*x+y*y-1>0\" 2>errs.log 1>out1", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2<0\" 2>errs.log 1>out2", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2<0\" 2>errs.log 1>out3", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)>0\" 2>errs.log 1>out4", argv[0]);
-        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y<0,y-SQRT(1-(FABS(x)-1)^2)<0\" 2>errs.log 1>out5", argv[0]);
-        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1<0\" 2>errs.log 1>out6", argv[0]);
-        example("%s \"-4\" \"4\" \"8/32\" \"0\" \"2*pi\" \"2*pi/64\" \"y-5*EXP(-x)*SIN(6*x)<0\" 2>errs.log 1>out7", argv[0]);
-        example("%s \"0\" \"3\" \"3/32\" \"0\" \"9\" \"9/32\" \"y-SQRT(X)>0\" 2>errs.log 1>out8", argv[0]);
-        example("%s \"0\" \"1\" \"1/32\" \"0\" \"1\" \"1/32\" \"y-X<0\" 2>errs.log 1>out9", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"SIN(X)+SIN(Y)>0\" 2>errs.log 1>out10", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/64\" \"SIN(X)*SIN(Y)>0\" 2>errs.log 1>out11", argv[0]);
-        exit(0);
-    }
-    INIT(argv + 1);
-    accu = max(s1, s2);
-    for (number_t i = _y2; i >= _y1; ) {
-        for (number_t j = x1; j <= x2; ) {
-            logger(DEBUG_LOG, "x = %Le, y = %Le", j, i);
-            bool ok = false;
-            for (char** expr = argv + 7; *expr; expr++) {
-                ok = eval(i, j, *expr, NULL);
-                if (ok) {
-                    break;
-                }
-            }
-            if (ok) {
-                printf("%c", INNER_CHAR);
-            } else {
-                printf("%c", OUTER_CHAR);
-            }
-            j += s2;
-        }
-        printf("\n");
-        i -= s1;
-    }
-    return 0;
-}
-#endif
-#endif
