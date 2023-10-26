@@ -2,7 +2,7 @@
 #define _CONFIG_H_
 
 // ***examples***
-#define EXEC_EXAMPLES // execute examples
+// #define EXEC_EXAMPLES // execute examples
 // #define OPEN_EXAMPLES // open the examples
 
 

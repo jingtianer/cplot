@@ -59,22 +59,22 @@ typedef enum platform_t {
 platform_t platform() {
 #ifdef _WIN32
 #ifdef _WIN64
-    return win64;
+    return platform_win64;
 #else
-    return win32;
+    return platform_win32;
 #endif
 #elif __APPLE__
-    return apple;
+    return platform_apple;
 #elif __ANDROID__
-    return android;
+    return platform_android;
 #elif __linux__
-    return linux;
+    return platform_linux;
 #elif __unix__ // all unices not caught above
-    return unix;
+    return platform_unix;
 #elif defined(_POSIX_VERSION)
-    return posix;
+    return platform_posix;
 #else
-    return other;
+    return platform_other;
 #endif
 }
 
