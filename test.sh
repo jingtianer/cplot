@@ -1,6 +1,6 @@
 set -e
-gcc -I./svpng ../main.c -lm -o heart
-gcc -I./svpng -Dtupper ../main.c -lm -o tupper
+gcc -I./svpng -I. ../main.c -lm -o heart
+gcc -I./svpng -I. -Dtupper ../main.c -lm -o tupper
 # ./heart
 ./tupper
 

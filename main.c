@@ -1,7 +1,7 @@
 #define _XOPEN_SOURCE 500
 #define _POSIX_C_SOURCE 200809L
 #define _C99_SOURCE
-
+#include "config.h"
 #include "svpng/svpng.inc"
 #include <stdio.h>
 #include <math.h>
@@ -13,28 +13,15 @@
 #include <float.h>
 
 typedef long double number_t;
-//#define LOG_LEVEL DEBUG_LOG
-#define DEBUG_LOG 7
-#define INFO_LOG 5
-#define ERR_LOG 4
-#ifndef LOG_LEVEL
-#define LOG_LEVEL INFO_LOG
-#endif
-#ifndef GREATER_CHAR
-#define GREATER_CHAR ' '
-#endif
-#ifndef SMALLER_CHAR
-#define SMALLER_CHAR '+'
-#endif
 
-void logger(int level, const char *format, ...) {
+void logger(int level, const char* format, ...) {
     if (level > LOG_LEVEL) return;
     va_list args;
     va_start(args, format);
     int len = vsnprintf(NULL, 0, format, args) + 1;
     va_end(args);
     va_start(args, format);
-    char *str = malloc(len);
+    char* str = malloc(len);
     vsprintf(str, format, args);
     va_end(args);
     fprintf(stderr, "%s\n", str);
@@ -45,7 +32,7 @@ void logger(int level, const char *format, ...) {
 
 }
 
-int alloc_sprintf(char **level, const char *format, ...) {
+int alloc_sprintf(char** level, const char* format, ...) {
     if (level == NULL) return 0;
     va_list args;
     va_start(args, format);
@@ -59,14 +46,14 @@ int alloc_sprintf(char **level, const char *format, ...) {
 }
 
 typedef enum platform_t {
-    apple = 1,
-    win32,
-    win64,
-    android,
-    linux,
-    unix,
-    posix,
-    other
+    platform_apple = 1,
+    platform_win32,
+    platform_win64,
+    platform_android,
+    platform_linux,
+    platform_unix,
+    platform_posix,
+    platform_other
 } platform_t;
 
 platform_t platform() {
@@ -91,28 +78,32 @@ platform_t platform() {
 #endif
 }
 
-int example(const char *format, ...) {
+int example(const char* format, ...) {
     va_list args;
     va_start(args, format);
     int len = vsnprintf(NULL, 0, format, args) + 1;
     va_end(args);
     va_start(args, format);
-    char *str = malloc(len);
+    char* str = malloc(len);
     vsprintf(str, format, args);
     va_end(args);
+#ifdef EXEC_EXAMPLES
     system(str);
+#endif
     logger(INFO_LOG, "\t%s", str);
-    if (platform() == apple || platform() == linux) {
-        char *show;
+#ifdef OPEN_EXAMPLES
+    if (platform() == platform_apple || platform() == platform_linux) {
+        char* show;
         alloc_sprintf(&show, "open ./%s", strrchr(str, '>') + 1);
         system(show);
         free(show);
-    } else if (platform() == win32 || platform() == win64) {
-        char *show;
+    } else if (platform() == platform_win32 || platform() == platform_win64) {
+        char* show;
         alloc_sprintf(&show, "./%s", strrchr(str, '>') + 1);
         system(show);
         free(show);
     }
+#endif
     free(str);
     return len;
 }
@@ -194,261 +185,261 @@ void pushOP(char cur_op) {
         if (!EMPTY(stack))POP(stack, n1);
         else n1 = 0;
         switch (op) {
-            case '+':
-                res = n1 + n2;
-                break;
-            case '-':
-                res = n1 - n2;
-                break;
-            case '*':
-                res = n1 * n2;
-                break;
-            case '/':
-                if (n2 == 0) {
-                    logger(INFO_LOG, "divisor is zeor!");
-                    //                    exit(1);
-                }
-                res = n1 / n2;
-                break;
-            case '%':
-                if (n2 == 0) {
-                    logger(INFO_LOG, "divisor is zeor!");
-                    //                    exit(1);
-                }
-                res = fmodl(n1, n2);
-                break;
-            case '^':
-                res = powl(n1, n2);
-                break;
-            default:
-                break;
+        case '+':
+            res = n1 + n2;
+            break;
+        case '-':
+            res = n1 - n2;
+            break;
+        case '*':
+            res = n1 * n2;
+            break;
+        case '/':
+            if (n2 == 0) {
+                logger(INFO_LOG, "divisor is zeor!");
+                //                    exit(1);
+            }
+            res = n1 / n2;
+            break;
+        case '%':
+            if (n2 == 0) {
+                logger(INFO_LOG, "divisor is zeor!");
+                //                    exit(1);
+            }
+            res = fmodl(n1, n2);
+            break;
+        case '^':
+            res = powl(n1, n2);
+            break;
+        default:
+            break;
         }
         PUSH(stack, res);
     }
 }
 
-int len_strncmp(const char *a, const char *b) {
+int len_strncmp(const char* a, const char* b) {
     return strncmp(a, b, strlen(b));
 }
 
-number_t eval_value(number_t y, number_t x, const char *expr) {
+number_t eval_value(number_t y, number_t x, const char* expr) {
     size_t len = strlen(expr);
     size_t i = 0;
     stack_ptr = 0;
     op_stack_ptr = 0;
     while (i < len) {
         switch (expr[i]) {
-            case '^':
-                biCheck();
-                pushOP(expr[i]);
-                // if(EMPTY(stack)) PUSH(stack, 0);
-                PUSH(op_stack, expr[i]);
-                break;
-            case 'x':
-            case 'X':
-                PUSH(stack, x);
-                break;
-            case 'y':
-            case 'Y':
-                PUSH(stack, y);
-                break;
-            case '(':
-                PUSH(op_stack, '(');
-                break;
-            case ')': {
-                number_t n1, n2;
-                char op;
-                if (EMPTY(op_stack)) {
-                    logger(ERR_LOG, "no match ')'");
-                    exit(1);
-                }
-                pushOP(')');
+        case '^':
+            biCheck();
+            pushOP(expr[i]);
+            // if(EMPTY(stack)) PUSH(stack, 0);
+            PUSH(op_stack, expr[i]);
+            break;
+        case 'x':
+        case 'X':
+            PUSH(stack, x);
+            break;
+        case 'y':
+        case 'Y':
+            PUSH(stack, y);
+            break;
+        case '(':
+            PUSH(op_stack, '(');
+            break;
+        case ')': {
+            number_t n1, n2;
+            char op;
+            if (EMPTY(op_stack)) {
+                logger(ERR_LOG, "no match ')'");
+                exit(1);
+            }
+            pushOP(')');
+            POP(op_stack, op);
+            if (TOP(op_stack, op) >= op_min && TOP(op_stack, op) <= op_max) {
                 POP(op_stack, op);
-                if (TOP(op_stack, op) >= op_min && TOP(op_stack, op) <= op_max) {
-                    POP(op_stack, op);
-                    number_t n;
-                    if (!EMPTY(stack)) {
-                        POP(stack, n);
-                    } else {
-                        logger(ERR_LOG, "Error : no opvalue");
-                        exit(1);
-                    }
-                    number_t (*op_func)(number_t);
-                    switch (op) {
-                        case op_acos:
-                            if (n > 1 || n < -1) return DBL_MAX;
-                            op_func = acosl;
-                            break;
-                        case op_asin:
-                            if (n > 1 || n < -1) return DBL_MAX;
-                            op_func = asinl;
-                            break;
-                        case op_atan:
-                            op_func = atanl;
-                            break;
-                        case op_cos:
-                            op_func = cosl;
-                            break;
-                        case op_cosh:
-                            op_func = coshl;
-                            break;
-                        case op_sin:
-                            op_func = sinl;
-                            break;
-                        case op_sinh:
-                            op_func = sinhl;
-                            break;
-                        case op_tan:
-                            op_func = tanl;
-                            break;
-                        case op_tanh:
-                            op_func = tanhl;
-                            break;
-                        case op_exp:
-                            op_func = expl;
-                            break;
-                        case op_log:
-                            if (n < 0) return DBL_MAX;
-                            op_func = logl;
-                            break;
-                        case op_sqrt:
-                            if (n < 0) return DBL_MAX;
-                            op_func = sqrtl;
-                            break;
-                        case op_fabs:
-                            op_func = fabsl;
-                            break;
-                        case op_ceil:
-                            op_func = ceill;
-                            break;
-                        case op_floor:
-                            op_func = floorl;
-                            break;
-                    }
-                    PUSH(stack, op_func(n));
-                }
-            }
-                break;
-            case '+':
-            case '-': {
-                if ((i > 0 && expr[i - 1] != '(')) { // fix： a-(-b)
-                    // if stack is empty or last op is '(', ‘-’ is an Unary operator
-                    // else it's a Binary operator
-                    biCheck();
-                    pushOP(expr[i]);
+                number_t n;
+                if (!EMPTY(stack)) {
+                    POP(stack, n);
                 } else {
-                    PUSH(stack, 0);
+                    logger(ERR_LOG, "Error : no opvalue");
+                    exit(1);
                 }
-                PUSH(op_stack, expr[i]);
+                number_t(*op_func)(number_t);
+                switch (op) {
+                case op_acos:
+                    if (n > 1 || n < -1) return DBL_MAX;
+                    op_func = acosl;
+                    break;
+                case op_asin:
+                    if (n > 1 || n < -1) return DBL_MAX;
+                    op_func = asinl;
+                    break;
+                case op_atan:
+                    op_func = atanl;
+                    break;
+                case op_cos:
+                    op_func = cosl;
+                    break;
+                case op_cosh:
+                    op_func = coshl;
+                    break;
+                case op_sin:
+                    op_func = sinl;
+                    break;
+                case op_sinh:
+                    op_func = sinhl;
+                    break;
+                case op_tan:
+                    op_func = tanl;
+                    break;
+                case op_tanh:
+                    op_func = tanhl;
+                    break;
+                case op_exp:
+                    op_func = expl;
+                    break;
+                case op_log:
+                    if (n < 0) return DBL_MAX;
+                    op_func = logl;
+                    break;
+                case op_sqrt:
+                    if (n < 0) return DBL_MAX;
+                    op_func = sqrtl;
+                    break;
+                case op_fabs:
+                    op_func = fabsl;
+                    break;
+                case op_ceil:
+                    op_func = ceill;
+                    break;
+                case op_floor:
+                    op_func = floorl;
+                    break;
+                }
+                PUSH(stack, op_func(n));
             }
+        }
                 break;
-            case '*':
-            case '/':
-            case '%':
+        case '+':
+        case '-': {
+            if ((i > 0 && expr[i - 1] != '(')) { // fix： a-(-b)
+                // if stack is empty or last op is '(', ‘-’ is an Unary operator
+                // else it's a Binary operator
                 biCheck();
                 pushOP(expr[i]);
-                // if(EMPTY(stack)) PUSH(stack, 0);
-                PUSH(op_stack, expr[i]);
-                break;
-            case 'p': // p1 = 3.14
-                if (i + 1 < len && expr[i + 1] == 'i') {
-                    PUSH(stack, M_PI);
-                    i++;
-                } else {
-                    logger(ERR_LOG, "Error 'pi': unknown char(%c)", expr[i]);
-                    exit(1);
-                }
-                break;
-            case 'e': // e = 2.7
-                PUSH(stack, M_E);
-                break;
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-            case '.': {
-
-                logger(DEBUG_LOG, "before: expr+i = %s", expr + i);
-                char *end = NULL;
-                errno = 0;
-                number_t number = strtold(expr + i, &end);
-                if (errno != 0) {
-                    logger(ERR_LOG, "error occured while parsing number: %s, expr+i = %s, n = %lE", strerror(errno),
-                           expr + i, number);
-                    errno = 0;
-                }
-                if (end == expr + i) {
-                    logger(ERR_LOG, "incredible, no number converted!, *end=%c, expr[i]=%c", *end, expr[i]);
-                }
-                i = end - expr;
-                logger(DEBUG_LOG, "after: expr+i = %s, n = %lE", expr + i, number);
-                PUSH(stack, number);
-                i--;
+            } else {
+                PUSH(stack, 0);
             }
+            PUSH(op_stack, expr[i]);
+        }
                 break;
-            default:
-                if (!len_strncmp(expr + i, "ACOS")) {
-                    PUSH(op_stack, op_acos);
+        case '*':
+        case '/':
+        case '%':
+            biCheck();
+            pushOP(expr[i]);
+            // if(EMPTY(stack)) PUSH(stack, 0);
+            PUSH(op_stack, expr[i]);
+            break;
+        case 'p': // p1 = 3.14
+            if (i + 1 < len && expr[i + 1] == 'i') {
+                PUSH(stack, M_PI);
+                i++;
+            } else {
+                logger(ERR_LOG, "Error 'pi': unknown char(%c)", expr[i]);
+                exit(1);
+            }
+            break;
+        case 'e': // e = 2.7
+            PUSH(stack, M_E);
+            break;
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+        case '.': {
+
+            logger(DEBUG_LOG, "before: expr+i = %s", expr + i);
+            char* end = NULL;
+            errno = 0;
+            number_t number = strtold(expr + i, &end);
+            if (errno != 0) {
+                logger(ERR_LOG, "error occured while parsing number: %s, expr+i = %s, n = %lE", strerror(errno),
+                    expr + i, number);
+                errno = 0;
+            }
+            if (end == expr + i) {
+                logger(ERR_LOG, "incredible, no number converted!, *end=%c, expr[i]=%c", *end, expr[i]);
+            }
+            i = end - expr;
+            logger(DEBUG_LOG, "after: expr+i = %s, n = %lE", expr + i, number);
+            PUSH(stack, number);
+            i--;
+        }
+                break;
+        default:
+            if (!len_strncmp(expr + i, "ACOS")) {
+                PUSH(op_stack, op_acos);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "ASIN")) {
+                PUSH(op_stack, op_asin);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "ATAN")) {
+                PUSH(op_stack, op_atan);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "COS")) {
+                if (expr[i + 3] == 'H') {
+                    PUSH(op_stack, op_cosh);
                     i += 3;
-                } else if (!len_strncmp(expr + i, "ASIN")) {
-                    PUSH(op_stack, op_asin);
-                    i += 3;
-                } else if (!len_strncmp(expr + i, "ATAN")) {
-                    PUSH(op_stack, op_atan);
-                    i += 3;
-                } else if (!len_strncmp(expr + i, "COS")) {
-                    if (expr[i + 3] == 'H') {
-                        PUSH(op_stack, op_cosh);
-                        i += 3;
-                    } else {
-                        PUSH(op_stack, op_cos);
-                        i += 2;
-                    }
-                } else if (!len_strncmp(expr + i, "SIN")) {
-                    if (expr[i + 3] == 'H') {
-                        PUSH(op_stack, op_sinh);
-                        i += 3;
-                    } else {
-                        PUSH(op_stack, op_sin);
-                        i += 2;
-                    }
-                } else if (!len_strncmp(expr + i, "TAN")) {
-                    if (expr[i + 3] == 'H') {
-                        PUSH(op_stack, op_tanh);
-                        i += 3;
-                    } else {
-                        PUSH(op_stack, op_tan);
-                        i += 2;
-                    }
-                } else if (!len_strncmp(expr + i, "EXP")) {
-                    PUSH(op_stack, op_exp);
-                    i += 2;
-                } else if (!len_strncmp(expr + i, "LOG")) {
-                    PUSH(op_stack, op_log);
-                    i += 2;
-                } else if (!len_strncmp(expr + i, "SQRT")) {
-                    PUSH(op_stack, op_sqrt);
-                    i += 3;
-                } else if (!len_strncmp(expr + i, "FABS")) {
-                    PUSH(op_stack, op_fabs);
-                    i += 3;
-                } else if (!len_strncmp(expr + i, "CEIL")) {
-                    PUSH(op_stack, op_ceil);
-                    i += 3;
-                } else if (!len_strncmp(expr + i, "FLOOR")) {
-                    PUSH(op_stack, op_floor);
-                    i += 4;
                 } else {
-                    logger(ERR_LOG, "Error: unknown char(%c)", expr[i]);
-                    exit(1);
+                    PUSH(op_stack, op_cos);
+                    i += 2;
                 }
-                break;
+            } else if (!len_strncmp(expr + i, "SIN")) {
+                if (expr[i + 3] == 'H') {
+                    PUSH(op_stack, op_sinh);
+                    i += 3;
+                } else {
+                    PUSH(op_stack, op_sin);
+                    i += 2;
+                }
+            } else if (!len_strncmp(expr + i, "TAN")) {
+                if (expr[i + 3] == 'H') {
+                    PUSH(op_stack, op_tanh);
+                    i += 3;
+                } else {
+                    PUSH(op_stack, op_tan);
+                    i += 2;
+                }
+            } else if (!len_strncmp(expr + i, "EXP")) {
+                PUSH(op_stack, op_exp);
+                i += 2;
+            } else if (!len_strncmp(expr + i, "LOG")) {
+                PUSH(op_stack, op_log);
+                i += 2;
+            } else if (!len_strncmp(expr + i, "SQRT")) {
+                PUSH(op_stack, op_sqrt);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "FABS")) {
+                PUSH(op_stack, op_fabs);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "CEIL")) {
+                PUSH(op_stack, op_ceil);
+                i += 3;
+            } else if (!len_strncmp(expr + i, "FLOOR")) {
+                PUSH(op_stack, op_floor);
+                i += 4;
+            } else {
+                logger(ERR_LOG, "Error: unknown char(%c)", expr[i]);
+                exit(1);
+            }
+            break;
         }
         i++;
         logStack();
@@ -461,7 +452,7 @@ number_t eval_value(number_t y, number_t x, const char *expr) {
 
 number_t accu;
 
-bool eval_cmp(number_t y, number_t x, char *expr, number_t *z) {
+bool eval_cmp(number_t y, number_t x, char* expr, number_t* z) {
     int state = 0; // 1 eq, 2 gt , 0 st
     size_t len = strlen(expr);
     size_t i = 0;
@@ -486,39 +477,39 @@ bool eval_cmp(number_t y, number_t x, char *expr, number_t *z) {
     number_t n1 = eval_value(y, x, expr), n2 = eval_value(y, x, expr + i);
     if (z) *z = n1 - n2;
     switch (state) {
-        case 1: // <
-            return n1 < n2 && !(fabsl(n1 - n2) < accu);
-            break;
-        case 2: // =
-            return fabsl(n1 - n2) < accu;
-            break;
-        case 4: // >
-            return n1 > n2 > 0 && !(fabsl(n1 - n2) < accu);
-            break;
-        case 3: // <=
-            return n1 < n2 || fabsl(n1 - n2) < accu;
-            break;
-        case 5: // !=
-            return fabsl(n1 - n2) > accu;
-            break;
-        case 6: // >=
-            return n1 > n2 > 0 || fabsl(n1 - n2) < accu;
-            break;
-        default:
-            logger(ERR_LOG, "unreachable");
-            break;
+    case 1: // <
+        return n1 < n2 && !(fabsl(n1 - n2) < accu);
+        break;
+    case 2: // =
+        return fabsl(n1 - n2) < accu;
+        break;
+    case 4: // >
+        return n1 > n2 > 0 && !(fabsl(n1 - n2) < accu);
+        break;
+    case 3: // <=
+        return n1 < n2 || fabsl(n1 - n2) < accu;
+        break;
+    case 5: // !=
+        return fabsl(n1 - n2) > accu;
+        break;
+    case 6: // >=
+        return n1 > n2 > 0 || fabsl(n1 - n2) < accu;
+        break;
+    default:
+        logger(ERR_LOG, "unreachable");
+        break;
     }
     logger(ERR_LOG, "unreachable1");
     return false;
 }
 
-bool eval(number_t y, number_t x, const char *_expr, number_t *z) {
-    char *expr = strdup(_expr);
+bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
+    char* expr = strdup(_expr);
     bool ret = true;
-    char *start = expr;
-    char *end = NULL;
-//    if(z)*z = LDBL_MIN;
-//    number_t zi = LDBL_MIN;
+    char* start = expr;
+    char* end = NULL;
+    //    if(z)*z = LDBL_MIN;
+    //    number_t zi = LDBL_MIN;
     while ((end = strchr(start, ',')) != NULL) {
         *end = 0;
         if (!eval_cmp(y, x, start, z)) {
@@ -534,7 +525,7 @@ bool eval(number_t y, number_t x, const char *_expr, number_t *z) {
     return ret;
 }
 
-void INIT(char **argv) {
+void INIT(char** argv) {
     int i = 0;
     _y1 = eval_value(0, 0, argv[i++]);
     _y2 = eval_value(0, 0, argv[i++]);
@@ -547,42 +538,14 @@ void INIT(char **argv) {
     logger(DEBUG_LOG, "%Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, s1, x1, x2, s2);
 }
 
-#define LEFT_MARGIN     10
-#define RIGHT_MARGIN    10
-#define TOP_MARGIN      10
-#define END_MARGIN      10
-#define LEFT_EXTRA_PIXEL    10
-#define RIGHT_EXTRA_PIXEL   10
-#define TOP_EXTRA_PIXEL     10
-#define END_EXTRA_PIXEL     10
-#ifdef BLUE_PINK
-#define R 0x00
-#define G 0xB2
-#define B 0xEE
-#define A 0xFF
-#define BG_R 0xFF
-#define BG_G 0xEA
-#define BG_B 0xE1
-#define BG_A 0xFF
-#else
-#define R 0x00
-#define G 0x00
-#define B 0x00
-#define A 0xFF
-#define BG_R 0xFF
-#define BG_G 0xFF
-#define BG_B 0xFF
-#define BG_A 0xFF
-#endif
-#define PAINTERSIZE 1
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-void draw(unsigned char *rgba, int i, int j, int w, int h, int radius) {
+void draw(unsigned char* rgba, int i, int j, int w, int h, int radius) {
     for (int y = max(-radius, -i); y <= min(radius, h - i - 1); y++) {
         for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
             if (sqrt(x * x + y * y) > radius) continue;
-            unsigned char *p = rgba + 4 * w * (i + y) + 4 * (j + x);
+            unsigned char* p = rgba + 4 * w * (i + y) + 4 * (j + x);
             *p++ = R;
             *p++ = G;
             *p++ = B;
@@ -591,120 +554,124 @@ void draw(unsigned char *rgba, int i, int j, int w, int h, int radius) {
     }
 }
 
-void plot_png(char **argv) {
-//    int expr_cnt = 0;
-//    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    int h = (int) ceill(s1 * (deltaY > deltaX ? (deltaY / deltaX) : 1));
-    int w = (int) ceill(s2 * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
+void plot_png(char** argv) {
+    //    int expr_cnt = 0;
+    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
+    int h = (int)ceill(s1 * (deltaY > deltaX ? (deltaY / deltaX) : 1));
+    int w = (int)ceill(s2 * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
     //    int h = ceill(s1);
     //    int w = ceill(s2);
     number_t dx = deltaX / w;
     number_t dy = deltaY / h;
     logger(DEBUG_LOG, "x = %d, y = %d", h, w);
-    unsigned char *rgba = malloc(
-            sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) *
-            (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL) * 4);
-//    number_t *z_cache = malloc(
-//            sizeof(number_t) * (w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2) * //上下左右多算一行/列
-//            (h + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL + 2) * expr_cnt), *z_cache_ptr;
-//    z_cache_ptr = z_cache;
-//    for (int i = -1; i < h + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL + 1; i++) {
-//        for (int j = -1; j < w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 1; j++) {
-//            for(char **expr = argv; *expr; expr++, z_cache_ptr++)
-//                eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2, dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, z_cache_ptr, false);
-//        }
-//    }
-    unsigned char *p = rgba;
-    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL) *
-                        (h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL); i++) {
+    unsigned char* rgba = malloc(
+        sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
+    //    number_t *z_cache = malloc(
+    //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
+    //            (h + TOP_PADDING + END_PADDING + 2) * expr_cnt), *z_cache_ptr;
+    //    z_cache_ptr = z_cache;
+    //    for (int i = -1; i < h + TOP_PADDING + END_PADDING + 1; i++) {
+    //        for (int j = -1; j < w + LEFT_PADDING + RIGHT_PADDING + 1; j++) {
+    //            for(char **expr = argv; *expr; expr++, z_cache_ptr++)
+    //                eval(-dy * (i - TOP_PADDING) + _y2, dx * (j - LEFT_PADDING) + x1, *expr, z_cache_ptr, false);
+    //        }
+    //    }
+    unsigned char* p = rgba;
+    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING); i++) {
         *p++ = BG_R;
         *p++ = BG_G;
         *p++ = BG_B;
         *p++ = BG_A;
     }
     accu = 2 * max(dx, dy);
-//    z_cache_ptr = z_cache;
-//    z_cache_ptr += (w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2) * expr_cnt;
-    for (int i = 0; i < h + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL; i++) {
-//        z_cache_ptr += expr_cnt;
-        for (int j = 0; j < w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL; j++) {
+    //    z_cache_ptr = z_cache;
+    //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
+    for (int i = 0; i < h + TOP_PADDING + END_PADDING; i++) {
+        //        z_cache_ptr += expr_cnt;
+        for (int j = 0; j < w + LEFT_PADDING + RIGHT_PADDING; j++) {
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
             bool ok = false;
             number_t z0, zx, zy;
-//            number_t *zptr = z_cache_ptr;
-//            z_cache_ptr += expr_cnt;
-            for (char **expr = argv; *expr; expr++) {
-//                z0 = *zptr++;
-                eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
-                     dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &z0);
+            //            number_t *zptr = z_cache_ptr;
+            //            z_cache_ptr += expr_cnt;
+            for (char** expr = argv; *expr; expr++) {
+                //                z0 = *zptr++;
+#ifndef FAST_MODE
+                eval(-dy * (i - TOP_PADDING) + _y2,
+                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                 number_t dzx = 0;
                 number_t dzy = 0;
-                int off[] = {1, -1, -1, 1, 1};
+                int off[] = { 1, -1, -1, 1, 1 };
                 accu = 0;
                 for (int offi = 0; offi <= 1; offi++) {
-//                    zx = *(zptr + off[offi]*expr_cnt);
-                    eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
-                         dx * (j - LEFT_EXTRA_PIXEL + off[offi]) + x1, *expr, &zx);
+                    //                    zx = *(zptr + off[offi]*expr_cnt);
+                    eval(-dy * (i - TOP_PADDING) + _y2,
+                        dx * (j - LEFT_PADDING + off[offi]) + x1, *expr, &zx);
                     dzx = (zx - z0) / dx;
                     accu = max(accu, fabsl(z0 - zx));
-//                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
+                    //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
                 }
 
                 for (int offi = 0; offi <= 1; offi++) {
-//                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2));
-                    eval(-dy * (i - TOP_EXTRA_PIXEL + off[offi]) + _y2,
-                         dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &zy);
+                    //                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_PADDING + RIGHT_PADDING + 2));
+                    eval(-dy * (i - TOP_PADDING + off[offi]) + _y2,
+                        dx * (j - LEFT_PADDING) + x1, *expr, &zy);
                     dzy = (zy - z0) / dy;
                     accu = max(accu, fabsl(z0 - zy));
-//                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
+                    //                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
                 }
                 accu = min(accu, max(dx, dy));
-                ok = eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
-                          dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &z0);
+#endif
+                ok = eval(-dy * (i - TOP_PADDING) + _y2,
+                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                 if (ok) goto draw;
+#ifndef FAST_MODE
                 if (z0 > 10 * max(dx, dy)) continue;
                 logger(DEBUG_LOG, "dzx = %Le", dzx);
                 logger(DEBUG_LOG, "dzy = %Le", dzy);
                 number_t maxd = min(100, floorl(max(fabsl(dzx), fabsl(dzy))));
                 for (int divx = 1; divx < maxd; divx++) {
-                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                    ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                        dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                    ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                        dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                    ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                        dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                    ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                        dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
                 }
+#endif
             }
-            draw:
+        draw:
             if (ok) {
                 draw(
-                        rgba,
-                        i + TOP_MARGIN, j + LEFT_MARGIN,
-                        w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL,
-                        h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL,
-                        PAINTERSIZE
+                    rgba,
+                    i + TOP_MARGIN, j + LEFT_MARGIN,
+                    w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+                    h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+                    BRUSH_SIZE
                 );
             }
         }
-//        z_cache_ptr += expr_cnt;
+        //        z_cache_ptr += expr_cnt;
     }
-//    z_cache_ptr += (w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2) * expr_cnt;
+    //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
 
     svpng(
-            stdout,
-            w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL,
-            h + TOP_MARGIN + END_MARGIN + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL,
-            rgba,
-            1
+        stdout,
+        w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+        h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+        rgba,
+        1
     );
     free(rgba);
-//    free(z_cache);
+    //    free(z_cache);
 }
 
 #ifdef tupper
@@ -733,53 +700,52 @@ int main(int argc, char** argv) {
 }
 #else
 
-#ifndef USE_CHAR
+#ifndef USE_CONSOLE
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     if (argc < 8) {
-        char *str;
+        char* str;
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sx expression\nexamples:", argv[0]);
-        example("%s -1 1 300 -1 1 300 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
+        example("%s \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\" 2>errs.log 1>out2.png", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\" 2>errs.log 1>out3.png", argv[0]);
         example("%s \"-2\" \"ACOS(1/2)-pi/4\" 300 \"-pi/2\" \"pi/2\" 300 \"y*y+x*x+y-SQRT(y*y+x*x)=0\" 2>errs.log 1>out4.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\" 2>errs.log 1>out5.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-1\" \"pi/2\" 300 \"-1\" \"1\" 300 \"x*x+(y-FABS(x)^(2/3.0))^2-1=0\" 2>errs.log 1>out6.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-4\" \"4\" \"300\" \"0\" \"2*pi\" \"300\" \"y-5*EXP(-x)*SIN(6*x)=0\" 2>errs.log 1>out7.png",
-                argv[0]);
+            argv[0]);
         example("%s \"0\" \"3\" 300 \"0\" \"9\" 300 \"y-SQRT(9-x)=0\" 2>errs.log 1>out8.png", argv[0]);
         example("%s \"0\" \"1\" 300 \"0\" \"1\" 300 \"y-X=0\" 2>errs.log 1>out9.png", argv[0]);
         example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)+SIN(Y)=0\" 2>errs.log 1>out10.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)*SIN(Y)=0\" 2>errs.log 1>out11.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-8*pi\" \"8*pi\" 300 \"-8*pi\" \"8*pi\" 300 \"COS(x+SIN(y))-TAN(y)=0\" 2>errs.log 1>out12.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png",
-                argv[0]); // 求交点的情况 and
+            argv[0]); // 求交点的情况 and
         example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png",
-                argv[0]); // 求交点的情况 or
+            argv[0]); // 求交点的情况 or
         example("%s \"-2*pi\" \"2*pi\" \"800\" \"-2*pi\" \"2*pi\" \"800\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
-                argv[0]);
+            argv[0]);
         example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
         example("%s \"-4*pi\" \"4*pi\" \"800\" \"-4*pi\" \"4*pi\" \"800\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
-                argv[0]);
-        example("%s -1 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\" 2>errs.log 1>out21.png", argv[0]);
-        exit(0);
-        example("%s -1 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\" 2>errs.log 1>out22.png", argv[0]);
+            argv[0]);
+        example("%s \"-1\" 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\" 2>errs.log 1>out21.png", argv[0]);
+        example("%s \"-1\" 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\" 2>errs.log 1>out22.png", argv[0]);
         example("%s \"-3*pi/2\" \"3*pi/2\" 300 \"-3*pi/2\" \"3*pi/2\" 300 \"SIN(x*x)+SIN(y*y)=1\"  2>errs.log 1>out23.png",
-                argv[0]);
-        example("%s  \"-10\" \"10\" 2000 \"-10\" \"10\" 2000 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
-        example("%s  \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\"  2>errs.log 1>out25.png", argv[0]);
+            argv[0]);
+        example("%s \"-10\" \"10\" 2000 \"-10\" \"10\" 2000 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
+        example("%s \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\" 2>errs.log 1>out25.png", argv[0]);
         example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\" 2>errs.log 1>out26.png", argv[0]);
         exit(0);
     }
@@ -792,7 +758,7 @@ int main(int argc, char **argv) {
 int main(int argc, char** argv) {
     if (argc < 8) {
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
-        example("%s -1 1 0.125 -1 1 0.0625 \"x*x+y*y-1>0\" 2>errs.log 1>out1", argv[0]);
+        example("%s \"-1\" 1 0.125 -1 1 0.0625 \"x*x+y*y-1>0\" 2>errs.log 1>out1", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2<0\" 2>errs.log 1>out2", argv[0]);
         example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2<0\" 2>errs.log 1>out3", argv[0]);
         example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)>0\" 2>errs.log 1>out4", argv[0]);
@@ -818,9 +784,9 @@ int main(int argc, char** argv) {
                 }
             }
             if (ok) {
-                printf("%c", SMALLER_CHAR);
+                printf("%c", INNER_CHAR);
             } else {
-                printf("%c", GREATER_CHAR);
+                printf("%c", OUTER_CHAR);
             }
             j += s2;
         }
