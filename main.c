@@ -53,6 +53,37 @@ int alloc_sprintf(char** level, const char* format, ...) {
     va_end(args);
     return len;
 }
+typedef enum platform_t {
+    apple = 1,
+    win32,
+    win64,
+    android,
+    linux,
+    unix,
+    posix,
+    other
+} platform_t;
+platform_t platform() {
+#ifdef _WIN32
+   #ifdef _WIN64
+    return win64;
+   #else
+    return win32;
+   #endif
+#elif __APPLE__
+    return apple;
+#elif __ANDROID__
+    return android;
+#elif __linux__
+    return linux;
+#elif __unix__ // all unices not caught above
+    return unix;
+#elif defined(_POSIX_VERSION)
+    return posix;
+#else
+    return other;
+#endif
+}
 int example(const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -64,9 +95,17 @@ int example(const char* format, ...) {
     va_end(args);
     system(str);
     logger(INFO_LOG, "\t%s", str);
-    char * show;
-    alloc_sprintf(&show, "open ./%s",strrchr(str, '>')+1);
-    system(show);
+    if(platform() == apple || platform() == linux) {
+        char *show;
+        alloc_sprintf(&show, "open ./%s", strrchr(str, '>') + 1);
+        system(show);
+        free(show);
+    } else if(platform() == win32 || platform() == win64) {
+        char *show;
+        alloc_sprintf(&show, "./%s", strrchr(str, '>') + 1);
+        system(show);
+        free(show);
+    }
     free(str);
     return len;
 }
@@ -77,7 +116,7 @@ number_t deltaX, deltaY;
 #define POP(s, n) (n = s[--s##_ptr])
 #define TOP(s, n) (n = s[s##_ptr-1])
 #define EMPTY(s) (s##_ptr == 0)
-enum {
+typedef enum unary_ops {
     op_acos = 48,
     op_asin,
     op_atan,
@@ -93,9 +132,9 @@ enum {
     op_sqrt,
     op_fabs,
     op_ceil
-};
-const static int op_min = op_acos;
-const static int op_max = op_ceil;
+} unary_ops;
+const static unary_ops op_min = op_acos;
+const static unary_ops op_max = op_ceil;
 
 static number_t stack[1024];
 static char op_stack[1024];
