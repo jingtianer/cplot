@@ -1,5 +1,6 @@
 set -e
-gcc -DUSE_CHAR -I./svpng main.c -lm -o heart
+gcc -DUSE_CHAR -I./svpng ../main.c -lm -o heart
+./heart
 ./heart "-pi/2" "pi/2" "1/8" "-3*pi" "2*pi" "1/8" "y^2-SIN(x+y)^2" 2>errs.log
 ./heart "-pi/2" "pi/2" "1/8" "-3*pi" "2*pi" "1/8" "y^2-SIN(x)^2" 2>errs.log
 ./heart "-2" "ACOS(1/2)-pi/4" "1/8" "-pi/2" "pi/2" "1/8" "y*y+x*x+y-SQRT(y*y+x*x)" 2>errs.log
