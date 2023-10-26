@@ -32,17 +32,18 @@ SET(BG_A, u_int8_t);
 SET(brush_color, u_int32_t);
 SET(bg_color, u_int32_t);
 
-SET(margin, u_int32_t);
+SET(margin, int);
 
-SET(padding, u_int32_t);
-SET(LEFT_MARGIN, u_int32_t);
-SET(RIGHT_MARGIN, u_int32_t);
-SET(TOP_MARGIN, u_int32_t);
-SET(END_MARGIN, u_int32_t);
+SET(padding, int);
+SET(LEFT_MARGIN, int);
+SET(RIGHT_MARGIN, int);
+SET(TOP_MARGIN, int);
+SET(END_MARGIN, int);
 
-SET(LEFT_PADDING, u_int32_t);
-SET(RIGHT_PADDING, u_int32_t);
-SET(TOP_PADDING, u_int32_t);
-SET(END_PADDING, u_int32_t);
+SET(LEFT_PADDING, int);
+SET(RIGHT_PADDING, int);
+SET(TOP_PADDING, int);
+SET(END_PADDING, int);
+void enable_fastmode(bool enable);
 #undef SET
 #endif

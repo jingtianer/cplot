@@ -80,14 +80,32 @@ int main(int argc, char** argv) {
     }
     char* expr = strdup("1/2<FLOOR((FLOOR(y/17)*2^(-17*FLOOR(X)-FLOOR(y)%17))%2)");
     number_t k = eval_value(0, 0, "4858450636189713423582095962494202044581400587983244549483093085061934704708809928450644769865524364849997247024915119110411605739177407856919754326571855442057210445735883681829823754139634338225199452191651284348332905131193199953502413758765239264874613394906870130562295813219481113685339535565290850023875092856892694555974281546386510730049106723058933586052544096664351265349363643957125565695936815184334857605266940161251266951421550539554519153785457525756590740540157929001765967965480064427829131488548259914721248506352686630476300");
-    _y1 = k;
-    _y2 = k + 17;
-    x1 = 0;
-    x2 = 107;
-    deltaX = 107;
-    deltaY = 17;
+    init__y1(k);
+    init__y2(k+17);
+    init_x1(0);
+    init_x2(107);
+    init_deltaX(107);
+    init_deltaY(17);
+    init_s1(eval_value(0, 0, argv[1]));
+    init_s2(eval_value(0, 0, argv[2]));
     s1 = eval_value(0, 0, argv[1]);
     s2 = eval_value(0, 0, argv[2]);
+    set_bg_color(BG_COLOR);
+    set_brush_size(BRUSH_SIZE);
+    set_brush_color(BRUSH_COLOR);
+    set_LEFT_MARGIN(LEFT_MARGIN);
+    set_LEFT_PADDING(LEFT_PADDING);
+    set_RIGHT_MARGIN(RIGHT_MARGIN);
+    set_RIGHT_PADDING(RIGHT_PADDING);
+    set_TOP_MARGIN(TOP_MARGIN);
+    set_TOP_PADDING(TOP_PADDING);
+    set_END_MARGIN(END_MARGIN);
+    set_END_PADDING(END_PADDING);
+    #ifdef FAST_MODE
+    enable_fastmode(true);
+    #else
+    enable_fastmode(false);
+    #endif
     char* plot_args[] = { expr, NULL };
     plot_png(plot_args);
     free(expr);
@@ -155,6 +173,11 @@ int main(int argc, char** argv) {
     set_TOP_PADDING(TOP_PADDING);
     set_END_MARGIN(END_MARGIN);
     set_END_PADDING(END_PADDING);
+    #ifdef FAST_MODE
+    enable_fastmode(true);
+    #else
+    enable_fastmode(false);
+    #endif
     init(argv + 1);
     plot_png(argv + 7);
     return 0;

@@ -19,6 +19,11 @@ static unsigned int bg_color = 0xFFFFFFFF;
 static unsigned int brush_color = 0x000000FF;
 static unsigned char R = 0x00, G = 0x00, B = 0x00, A = 0x00;
 static unsigned char BG_R = 0xFF, BG_G = 0xFF, BG_B = 0xFF, BG_A = 0xFF;
+static bool fast_mode = false;
+void enable_fastmode(bool enable) {
+    fast_mode = enable;
+    logger(DEBUG_LOG, "enable fast mode = %s", (enable ? "true" : "false"));
+}
 #define SET(x, type) void set_##x(type n)
 #define SETImpl(x, type, formatter) SET(x, type) { x = n; logger(DEBUG_LOG, "set " #x " = " formatter, x); }
 SETImpl(brush_size, u_int32_t, "%u");
@@ -41,33 +46,33 @@ SET(brush_color, u_int32_t) {
 SET(bg_color, u_int32_t) {
     bg_color = n;
     BG_R = (n >> (3 << 3)) & 0xff;
-    BG_G = (n >> (2<< 3)) & 0xff;
+    BG_G = (n >> (2 << 3)) & 0xff;
     BG_B = (n >> (1 << 3)) & 0xff;
     BG_A = (n >> (0 << 3)) & 0xff;
     logger(DEBUG_LOG, "set bg_color = %u", bg_color);
 }
-u_int32_t LEFT_MARGIN, RIGHT_MARGIN, LEFT_PADDING, RIGHT_PADDING,
+int LEFT_MARGIN, RIGHT_MARGIN, LEFT_PADDING, RIGHT_PADDING,
 TOP_MARGIN, END_MARGIN, TOP_PADDING, END_PADDING;
-u_int32_t padding, margin;
+int padding, margin;
 
-SET(margin, u_int32_t) {
+SET(margin, int) {
     margin = LEFT_MARGIN = RIGHT_MARGIN = TOP_MARGIN = END_MARGIN = n;
     logger(DEBUG_LOG, "set margin = %u", margin);
 }
 
-SET(padding, u_int32_t) {
+SET(padding, int) {
     padding = LEFT_PADDING = RIGHT_PADDING = TOP_PADDING = END_PADDING = n;
     logger(DEBUG_LOG, "set padding = %u", padding);
 }
-SETImpl(LEFT_MARGIN, u_int32_t, "%u");
-SETImpl(RIGHT_MARGIN, u_int32_t, "%u");
-SETImpl(TOP_MARGIN, u_int32_t, "%u");
-SETImpl(END_MARGIN, u_int32_t, "%u");
+SETImpl(LEFT_MARGIN, int, "%d");
+SETImpl(RIGHT_MARGIN, int, "%d");
+SETImpl(TOP_MARGIN, int, "%d");
+SETImpl(END_MARGIN, int, "%d");
 
-SETImpl(LEFT_PADDING, u_int32_t, "%u");
-SETImpl(RIGHT_PADDING, u_int32_t, "%u");
-SETImpl(TOP_PADDING, u_int32_t, "%u");
-SETImpl(END_PADDING, u_int32_t, "%u");
+SETImpl(LEFT_PADDING, int, "%d");
+SETImpl(RIGHT_PADDING, int, "%d");
+SETImpl(TOP_PADDING, int, "%d");
+SETImpl(END_PADDING, int, "%d");
 
 #define PUSH(s, n) (s[s##_ptr++] = (n))
 #define POP(s, n) (n = s[--s##_ptr])
@@ -486,10 +491,10 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
 void init(char** argv) {
     _y1 = eval_value(0, 0, *argv++);
     _y2 = eval_value(0, 0, *argv++);
-    s1 =  eval_value(0, 0, *argv++);
-    x1 =  eval_value(0, 0, *argv++);
-    x2 =  eval_value(0, 0, *argv++);
-    s2 =  eval_value(0, 0, *argv++);
+    s1 = eval_value(0, 0, *argv++);
+    x1 = eval_value(0, 0, *argv++);
+    x2 = eval_value(0, 0, *argv++);
+    s2 = eval_value(0, 0, *argv++);
     deltaX = x2 - x1;
     deltaY = _y2 - _y1;
     logger(DEBUG_LOG, "init: %Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, s1, x1, x2, s2);
@@ -533,7 +538,7 @@ void plot_png(char** argv) {
     unsigned char* rgba = malloc(
         sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
         (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
-    if(rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+    if (rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
         (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
     //    number_t *z_cache = malloc(
     //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
@@ -553,7 +558,7 @@ void plot_png(char** argv) {
         *p++ = BG_B;
         *p++ = BG_A;
     }
-    accu = 2 * max(dx, dy);
+    accu = max(dx, dy);
     //    z_cache_ptr = z_cache;
     //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
     for (int i = 0; i < h + TOP_PADDING + END_PADDING; i++) {
@@ -562,59 +567,59 @@ void plot_png(char** argv) {
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
             bool ok = false;
             number_t z0, zx, zy;
+            number_t dzx = 0;
+            number_t dzy = 0;
             //            number_t *zptr = z_cache_ptr;
             //            z_cache_ptr += expr_cnt;
             for (char** expr = argv; *expr; expr++) {
                 //                z0 = *zptr++;
-#ifndef FAST_MODE
-                eval(-dy * (i - TOP_PADDING) + _y2,
-                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
-                number_t dzx = 0;
-                number_t dzy = 0;
-                int off[] = { 1, -1, -1, 1, 1 };
-                accu = 0;
-                for (int offi = 0; offi <= 1; offi++) {
-                    //                    zx = *(zptr + off[offi]*expr_cnt);
+                if (!fast_mode) {
                     eval(-dy * (i - TOP_PADDING) + _y2,
-                        dx * (j - LEFT_PADDING + off[offi]) + x1, *expr, &zx);
-                    dzx = (zx + z0) / dx;
-                    accu = max(accu, fabsl(z0 - zx));
-                    //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
-                }
+                        dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                    int off[] = { 1, -1, -1, 1, 1 };
+                    accu = 0;
+                    for (int offi = 0; offi <= 1; offi++) {
+                        //                    zx = *(zptr + off[offi]*expr_cnt);
+                        eval(-dy * (i - TOP_PADDING) + _y2,
+                            dx * (j - LEFT_PADDING + off[offi]) + x1, *expr, &zx);
+                        dzx = (zx - z0) / dx;
+                        accu = max(accu, fabsl(z0 - zx));
+                        //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
+                    }
 
-                for (int offi = 0; offi <= 1; offi++) {
-                    //                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_PADDING + RIGHT_PADDING + 2));
-                    eval(-dy * (i - TOP_PADDING + off[offi]) + _y2,
-                        dx * (j - LEFT_PADDING) + x1, *expr, &zy);
-                    dzy = (zy - z0) / dy;
-                    accu = max(accu, fabsl(z0 - zy));
-                    //                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
+                    for (int offi = 0; offi <= 1; offi++) {
+                        //                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_PADDING + RIGHT_PADDING + 2));
+                        eval(-dy * (i - TOP_PADDING + off[offi]) + _y2,
+                            dx * (j - LEFT_PADDING) + x1, *expr, &zy);
+                        dzy = (zy - z0) / dy;
+                        accu = max(accu, fabsl(z0 - zy));
+                        //                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
+                    }
+                    accu = min(accu, max(dx, dy));
                 }
-                accu = min(accu, max(dx, dy));
-#endif
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
-                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                    dx * (j - LEFT_PADDING) + x1, *expr, NULL);
                 if (ok) goto draw;
-#ifndef FAST_MODE
-                if (z0 > 10 * max(dx, dy)) continue;
-                logger(DEBUG_LOG, "dzx = %Le", dzx);
-                logger(DEBUG_LOG, "dzy = %Le", dzy);
-                number_t maxd = min(100, floorl(max(fabsl(dzx), fabsl(dzy))));
-                for (int divx = 1; divx < maxd; divx++) {
-                    ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                        dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                    if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                        dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                    if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                        dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                    if (ok) goto draw;
-                    ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                        dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                    if (ok) goto draw;
+                if (!fast_mode) {
+                    if (z0 > 10 * max(dx, dy)) continue;
+                    logger(DEBUG_LOG, "dzx = %Le", dzx);
+                    logger(DEBUG_LOG, "dzy = %Le", dzy);
+                    number_t maxd = min(100, floorl(max(fabsl(dzx), fabsl(dzy))));
+                    for (int divx = 1; divx < maxd; divx++) {
+                        ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                            dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                        if (ok) goto draw;
+                        ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                            dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                        if (ok) goto draw;
+                        ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                            dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                        if (ok) goto draw;
+                        ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                            dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                        if (ok) goto draw;
+                    }
                 }
-#endif
             }
         draw:
             if (ok) {

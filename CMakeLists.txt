@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(cplot)
 
 set(CMAKE_C_STANDARD 11)
-SET(COMPILE_FLAG -o3 -g)
+SET(COMPILE_FLAG -o3)
 # add_definitions(-DLOG_LEVEL=7)
 # add_definitions(-DUSE_CONSOLE)
 add_definitions(-DSVPNG_LINKAGE=static)
