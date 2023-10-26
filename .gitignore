@@ -4,3 +4,4 @@ out*
 heart
 cmake-build-debug
 .idea
+.DS_Store
