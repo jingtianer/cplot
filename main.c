@@ -205,14 +205,14 @@ void pushOP(char cur_op) {
                 break;
             case '/':
                 if (n2 == 0) {
-                    logger(ERR_LOG, "divisor is zeor!");
+                    logger(INFO_LOG, "divisor is zeor!");
                     //                    exit(1);
                 }
                 res = n1 / n2;
                 break;
             case '%':
                 if (n2 == 0) {
-                    logger(ERR_LOG, "divisor is zeor!");
+                    logger(INFO_LOG, "divisor is zeor!");
                     //                    exit(1);
                 }
                 res = fmodl(n1, n2);
@@ -484,25 +484,25 @@ bool eval_cmp(number_t y, number_t x, char *expr, number_t *z) {
     }
     logger(DEBUG_LOG, "compare state: %04x", state);
     number_t n1 = eval_value(y, x, expr), n2 = eval_value(y, x, expr + i);
-    if (z) *z = n1-n2;
+    if (z) *z = n1 - n2;
     switch (state) {
         case 1: // <
-            return n1<n2 && !(fabsl(n1-n2) < accu);
+            return n1 < n2 && !(fabsl(n1 - n2) < accu);
             break;
         case 2: // =
-            return fabsl(n1-n2) < accu;
+            return fabsl(n1 - n2) < accu;
             break;
         case 4: // >
-            return n1>n2 > 0 && !(fabsl(n1-n2) < accu);
+            return n1 > n2 > 0 && !(fabsl(n1 - n2) < accu);
             break;
         case 3: // <=
-            return n1<n2 || fabsl(n1-n2) < accu;
+            return n1 < n2 || fabsl(n1 - n2) < accu;
             break;
         case 5: // !=
-            return fabsl(n1-n2) > accu;
+            return fabsl(n1 - n2) > accu;
             break;
         case 6: // >=
-            return n1>n2 > 0 || fabsl(n1-n2) < accu;
+            return n1 > n2 > 0 || fabsl(n1 - n2) < accu;
             break;
         default:
             logger(ERR_LOG, "unreachable");
@@ -622,7 +622,7 @@ void plot_png(char **argv) {
         *p++ = BG_B;
         *p++ = BG_A;
     }
-    accu = 2*max(dx, dy);
+    accu = 2 * max(dx, dy);
 //    z_cache_ptr = z_cache;
 //    z_cache_ptr += (w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2) * expr_cnt;
     for (int i = 0; i < h + TOP_EXTRA_PIXEL + END_EXTRA_PIXEL; i++) {
@@ -635,48 +635,48 @@ void plot_png(char **argv) {
 //            z_cache_ptr += expr_cnt;
             for (char **expr = argv; *expr; expr++) {
 //                z0 = *zptr++;
-                 eval(-dy * (i -  TOP_EXTRA_PIXEL) + _y2,
-                          dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &z0);
+                eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
+                     dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &z0);
                 number_t dzx = 0;
                 number_t dzy = 0;
                 int off[] = {1, -1, -1, 1, 1};
                 accu = 0;
                 for (int offi = 0; offi <= 1; offi++) {
 //                    zx = *(zptr + off[offi]*expr_cnt);
-                    eval(-dy * (i -  TOP_EXTRA_PIXEL) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL + off[offi]) + x1, *expr, &zx);
+                    eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
+                         dx * (j - LEFT_EXTRA_PIXEL + off[offi]) + x1, *expr, &zx);
                     dzx = (zx - z0) / dx;
-                    accu = max(accu, fabsl(z0-zx));
+                    accu = max(accu, fabsl(z0 - zx));
 //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
                 }
 
                 for (int offi = 0; offi <= 1; offi++) {
 //                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_EXTRA_PIXEL + RIGHT_EXTRA_PIXEL + 2));
-                    eval(-dy * (i -  TOP_EXTRA_PIXEL + off[offi]) + _y2,
-                              dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &zy);
+                    eval(-dy * (i - TOP_EXTRA_PIXEL + off[offi]) + _y2,
+                         dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &zy);
                     dzy = (zy - z0) / dy;
-                    accu = max(accu, fabsl(z0-zy));
+                    accu = max(accu, fabsl(z0 - zy));
 //                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
                 }
                 accu = min(accu, max(dx, dy));
-                ok = eval(-dy * (i -  TOP_EXTRA_PIXEL) + _y2,
+                ok = eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2,
                           dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr, &z0);
                 if (ok) goto draw;
-                if(z0 > 10*max(dx, dy)) continue;
+                if (z0 > 10 * max(dx, dy)) continue;
                 logger(DEBUG_LOG, "dzx = %Le", dzx);
                 logger(DEBUG_LOG, "dzy = %Le", dzy);
                 number_t maxd = min(100, floorl(max(fabsl(dzx), fabsl(dzy))));
                 for (int divx = 1; divx < maxd; divx++) {
-                    ok = eval(-dy * (i -  TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
                               dx * (j - LEFT_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i -  TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
                               dx * (j - LEFT_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i -  TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
                               dx * (j - LEFT_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
-                    ok = eval(-dy * (i -  TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
+                    ok = eval(-dy * (i - TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
                               dx * (j - LEFT_EXTRA_PIXEL - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
                     if (ok) goto draw;
                 }
@@ -770,10 +770,17 @@ int main(int argc, char **argv) {
                 argv[0]);
         example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
                 argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png",
-                argv[0]);
+        example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
         example("%s \"-4*pi\" \"4*pi\" \"800\" \"-4*pi\" \"4*pi\" \"800\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
                 argv[0]);
+        example("%s -1 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\" 2>errs.log 1>out21.png", argv[0]);
+        exit(0);
+        example("%s -1 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\" 2>errs.log 1>out22.png", argv[0]);
+        example("%s \"-3*pi/2\" \"3*pi/2\" 300 \"-3*pi/2\" \"3*pi/2\" 300 \"SIN(x*x)+SIN(y*y)=1\"  2>errs.log 1>out23.png",
+                argv[0]);
+        example("%s  \"-10\" \"10\" 2000 \"-10\" \"10\" 2000 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
+        example("%s  \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\"  2>errs.log 1>out25.png", argv[0]);
+        example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\" 2>errs.log 1>out26.png", argv[0]);
         exit(0);
     }
     INIT(argv + 1);
