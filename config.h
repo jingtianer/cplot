@@ -12,7 +12,6 @@
 // #define USE_CONSOLE // uncomment it if you want draw on console
 
 
-
 // ***configs for console***
 
 // *****console display char*****
@@ -60,7 +59,9 @@
 #define ERR_LOG 4
 #define LOG_LEVEL INFO_LOG // set log level
 
+// *****fast-mode*****
 
+#define FAST_MODE
 
 
 
