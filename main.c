@@ -518,6 +518,8 @@ bool eval(number_t y, number_t x, const char *_expr, number_t *z) {
     bool ret = true;
     char *start = expr;
     char *end = NULL;
+//    if(z)*z = LDBL_MIN;
+//    number_t zi = LDBL_MIN;
     while ((end = strchr(start, ',')) != NULL) {
         *end = 0;
         if (!eval_cmp(y, x, start, z)) {
@@ -526,7 +528,9 @@ bool eval(number_t y, number_t x, const char *_expr, number_t *z) {
         }
         start = end + 1;
     }
-    if (ret && !eval_cmp(y, x, start, z)) ret = false;
+    if ((ret) && !eval_cmp(y, x, start, z)) {
+        ret = false;
+    }
     free(expr);
     return ret;
 }
@@ -552,15 +556,26 @@ void INIT(char **argv) {
 #define RIGHT_EXTRA_PIXEL   10
 #define TOP_EXTRA_PIXEL     10
 #define END_EXTRA_PIXEL     10
+#ifdef BLUE_PINK
 #define R 0x00
 #define G 0xB2
 #define B 0xEE
-#define A 255
+#define A 0xFF
 #define BG_R 0xFF
 #define BG_G 0xEA
 #define BG_B 0xE1
-#define BG_A 255
-#define PAINTERSIZE 3
+#define BG_A 0xFF
+#else
+#define R 0x00
+#define G 0x00
+#define B 0x00
+#define A 0xFF
+#define BG_R 0xFF
+#define BG_G 0xFF
+#define BG_B 0xFF
+#define BG_A 0xFF
+#endif
+#define PAINTERSIZE 0
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
@@ -611,24 +626,22 @@ void plot_png(char **argv) {
                 number_t dzx = 0;
                 number_t dzy = 0;
                 int off[] = {1, -1, -1, 1, 1};
-                for (int offi = 0; offi <= 3; offi++) {
+                for (int offi = 0; offi <= 0; offi++) {
                     ok = eval(-dy * (i - TOP_EXTRA_PIXEL) + _y2, dx * (j + off[offi] - LEFT_EXTRA_PIXEL) + x1, *expr,
                               &zx);
-                    if (ok) goto draw;
                     dzx = (zx - z0) / dx;
                     if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
                 }
 
-                for (int offi = 0; offi <= 3; offi++) {
+                for (int offi = 0; offi <= 0; offi++) {
                     ok = eval(-dy * (i + off[offi + 1] - TOP_EXTRA_PIXEL) + _y2, dx * (j - LEFT_EXTRA_PIXEL) + x1, *expr,
                               &zy);
-                    if (ok) goto draw;
                     dzy = (zy - z0) / dy;
                     if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
                 }
                 logger(DEBUG_LOG, "dzx = %Le", dzx);
                 logger(DEBUG_LOG, "dzy = %Le", dzy);
-                number_t maxd = min(20, floorl(max(fabsl(dzx), fabsl(dzy))));
+                number_t maxd = min(1000, floorl(max(fabsl(dzx), fabsl(dzy))));
                 for (int divx = 1; divx < maxd; divx++) {
                     ok = eval(-dy * (i -  TOP_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
                               dx * (j - LEFT_EXTRA_PIXEL + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
@@ -725,16 +738,15 @@ int main(int argc, char **argv) {
                 argv[0]); // 求交点的情况 and
         example("%s \"-1\" \"2\" 400 \"-1\" \"4\" 400 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png",
                 argv[0]); // 求交点的情况 or
-        example("%s \"-2*pi\" \"2*pi\" \"1000\" \"-2*pi\" \"2*pi\" \"1000\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png",
+        example("%s \"-2*pi\" \"2*pi\" \"400\" \"-2*pi\" \"2*pi\" \"400\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png",
                 argv[0]);
-        example("%s \"-pi\" \"pi\" \"1000\" \"-pi\" \"pi\" \"1000\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png",
+        example("%s \"-pi\" \"pi\" \"400\" \"-pi\" \"pi\" \"400\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png",
                 argv[0]);
-        example("%s \"-pi\" \"pi\" \"1000\" \"-pi\" \"pi\" \"1000\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
+        example("%s \"-pi\" \"pi\" \"400\" \"-pi\" \"pi\" \"400\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
                 argv[0]);
-        example("%s \"-4\" \"4\" \"400\" \"-4\" \"4\" \"400\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
-        example("%s \"-4*pi\" \"4*pi\" \"1000\" \"-4*pi\" \"4*pi\" \"1000\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
+        example("%s \"-4\" \"4\" \"400\" \"-4\" \"4\" \"400\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png",
                 argv[0]);
-        example("%s \"-4*pi\" \"4*pi\" \"1000\" \"-4*pi\" \"4*pi\" \"1000\" \"SIN(X*Y)=0\" 2>errs.log 1>out21.png",
+        example("%s \"-4*pi\" \"4*pi\" \"400\" \"-4*pi\" \"4*pi\" \"400\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
                 argv[0]);
         exit(0);
     }
