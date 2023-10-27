@@ -1,6 +1,6 @@
 *.log
 out*
-*.png
+out*.png
 heart
 cmake-build-debug
 .idea
