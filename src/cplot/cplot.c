@@ -20,6 +20,7 @@ static unsigned int brush_color = 0x000000FF;
 static unsigned char R = 0x00, G = 0x00, B = 0x00, A = 0x00;
 static unsigned char BG_R = 0xFF, BG_G = 0xFF, BG_B = 0xFF, BG_A = 0xFF;
 static bool fast_mode = false;
+static FILE* output_file = NULL;
 void enable_fastmode(bool enable) {
     fast_mode = enable;
     logger(DEBUG_LOG, "enable fast mode = %s", (enable ? "true" : "false"));
@@ -27,6 +28,7 @@ void enable_fastmode(bool enable) {
 #define SET(x, type) void set_##x(type n)
 #define SETImpl(x, type, formatter) SET(x, type) { x = n; logger(DEBUG_LOG, "set " #x " = " formatter, x); }
 SETImpl(brush_size, u_int32_t, "%u");
+SETImpl(output_file, FILE*, "%p");
 SETImpl(R, u_int8_t, "%u");
 SETImpl(G, u_int8_t, "%u");
 SETImpl(B, u_int8_t, "%u");
@@ -635,9 +637,11 @@ void plot_png(char** argv) {
         //        z_cache_ptr += expr_cnt;
     }
     //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
-
+    if(output_file == NULL) {
+        output_file = stdout;
+    }
     svpng(
-        stdout,
+        output_file,
         w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
         h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
         rgba,

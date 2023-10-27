@@ -1,7 +1,7 @@
 #ifndef __CPLOT_CPLOT_H__
 #define __CPLOT_CPLOT_H__
 #include <stdbool.h>
-
+#include <sys/types.h>
 typedef long double number_t;
 number_t eval_value(number_t y, number_t x, const char* expr);
 bool eval_cmp(number_t y, number_t x, char* expr, number_t* z);
@@ -21,6 +21,7 @@ INIT(deltaY);
 
 #define SET(x, type) void set_##x(type n)
 SET(brush_size, u_int32_t);
+SET(output_file, FILE*);
 SET(R, u_int8_t);
 SET(G, u_int8_t);
 SET(B, u_int8_t);
