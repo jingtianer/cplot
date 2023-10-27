@@ -18,17 +18,17 @@ make install
 
 #### USE_PNG
 ```
-cplot "y1" "y2" "height" "x1" "x2" "width" "<expressions...>" 2>errs.log 1>out.png
+cplotter "y1" "y2" "height" "x1" "x2" "width" "<expressions...>" 2>errs.log 1>out.png
 ```
 
 #### bool operator
 ```sh
 # and: seperate expressions by ','
 "expression1,expression2,..."
-cplot "-2" "2" 300 "-2" "2" 300 "x<1,x>-1,y<1,y>-1" 2>errs.log 1>out.png
+cplotter "-2" "2" 300 "-2" "2" 300 "x<1,x>-1,y<1,y>-1" 2>errs.log 1>out.png
 # or: 
 "expression1" "expression2"
-cplot "-2" "2" 300 "-2" "2" 300 "x>1" "x<-1" "y>1" "y<-1" 2>errs.log 1>out.png
+cplotter "-2" "2" 300 "-2" "2" 300 "x>1" "x<-1" "y>1" "y<-1" 2>errs.log 1>out.png
 ```
 
 ### expression format
