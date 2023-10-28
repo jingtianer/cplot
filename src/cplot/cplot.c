@@ -11,7 +11,7 @@
 #include "../../svpng/svpng.inc"
 #include "../logger/logger.h"
 #include "include/cplot.h"
-static number_t x1, x2, _y1, _y2, s1, s2;
+static number_t x1, x2, _y1, _y2, sy, sx;
 static number_t deltaX, deltaY;
 
 static unsigned int brush_size = 0;
@@ -497,22 +497,22 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
 void init(char** argv) {
     _y1 = eval_value(0, 0, *argv++);
     _y2 = eval_value(0, 0, *argv++);
-    s1 = eval_value(0, 0, *argv++);
+    sy = eval_value(0, 0, *argv++);
     x1 = eval_value(0, 0, *argv++);
     x2 = eval_value(0, 0, *argv++);
-    s2 = eval_value(0, 0, *argv++);
+    sx = eval_value(0, 0, *argv++);
     deltaX = x2 - x1;
     deltaY = _y2 - _y1;
-    logger(DEBUG_LOG, "init: %Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, s1, x1, x2, s2);
+    logger(DEBUG_LOG, "init: %Le, %Le, %Le, %Le, %Le, %Le\n", _y1, _y2, sy, x1, x2, sx);
 }
 #define INIT(x) void init_##x(number_t n)   
 #define INIT_IMPL(x) INIT(x) {x = n; logger(DEBUG_LOG, #x " = %lE", n);}
 INIT_IMPL(_y1)
 INIT_IMPL(_y2)
-INIT_IMPL(s1)
+INIT_IMPL(sy)
 INIT_IMPL(x1)
 INIT_IMPL(x2)
-INIT_IMPL(s2)
+INIT_IMPL(sx)
 INIT_IMPL(deltaX)
 INIT_IMPL(deltaY)
 #define max(a, b) (((a) > (b)) ? (a) : (b))
@@ -534,10 +534,10 @@ void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius) {
 void plot_png(char** argv) {
     //    int expr_cnt = 0;
     //    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    int h = (int)ceill(s1 * (deltaY > deltaX ? (deltaY / deltaX) : 1));
-    int w = (int)ceill(s2 * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
-    //    int h = ceill(s1);
-    //    int w = ceill(s2);
+    int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
+    int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
+    //    int h = ceill(sy);
+    //    int w = ceill(sx);
     number_t dx = deltaX / w;
     number_t dy = deltaY / h;
     logger(DEBUG_LOG, "x = %d, y = %d", h, w);

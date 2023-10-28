@@ -15,8 +15,8 @@ INIT(_y1);
 INIT(_y2);
 INIT(x1);
 INIT(x2);
-INIT(s1);
-INIT(s2);
+INIT(sy);
+INIT(sx);
 INIT(deltaX);
 INIT(deltaY);
 #undef INIT

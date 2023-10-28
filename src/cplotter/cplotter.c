@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
     init_deltaY(17);
     init_s1(eval_value(0, 0, argv[1]));
     init_s2(eval_value(0, 0, argv[2]));
-    s1 = eval_value(0, 0, argv[1]);
-    s2 = eval_value(0, 0, argv[2]);
+    sy = eval_value(0, 0, argv[1]);
+    sx = eval_value(0, 0, argv[2]);
     set_bg_color(BG_COLOR);
     set_brush_size(BRUSH_SIZE);
     set_brush_color(BRUSH_COLOR);
@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
         exit(0);
     }
     INIT(argv + 1);
-    accu = max(s1, s2);
+    accu = max(sy, sx);
     for (number_t i = _y2; i >= _y1; ) {
         for (number_t j = x1; j <= x2; ) {
             logger(DEBUG_LOG, "x = %Le, y = %Le", j, i);
@@ -220,10 +220,10 @@ int main(int argc, char** argv) {
             } else {
                 printf("%c", OUTER_CHAR);
             }
-            j += s2;
+            j += sx;
         }
         printf("\n");
-        i -= s1;
+        i -= sy;
     }
     return 0;
 }
