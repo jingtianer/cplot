@@ -86,12 +86,15 @@ jobs:
         name: cplotter
         path: ${{ steps.strings.outputs.build-output-dir }}
     
-    - name: Download APK from build
+    - name: Download cplot.so from build
       uses: actions/download-artifact@v2
       with:
-        name:
-          - cplot.so
-          - cplotter
+        name: cplot.so
+
+    - name: Download cplotter from build
+      uses: actions/download-artifact@v2
+      with:
+        name: cplotter
     
     - name: Display structure of downloaded files
       run: ls -R
