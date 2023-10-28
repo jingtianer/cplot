@@ -4,9 +4,8 @@ name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags: 
+      - '*'
 
 jobs:
   build:
@@ -64,3 +63,24 @@ jobs:
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
+
+    - name: Create Release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ${{ steps.Changelog.outputs.changelog }}
+          draft: false
+          prerelease: false
+
+    - name: Upload Artifact GitHub Action
+        uses: actions/upload-artifact@latest
+        with: 
+          name: cplot.so
+          path: ${{ steps.strings.outputs.build-output-dir }}
+          name: cplotter
+          path: ${{ steps.strings.outputs.build-output-dir }}
