@@ -76,6 +76,10 @@ SETImpl(RIGHT_PADDING, int, "%d");
 SETImpl(TOP_PADDING, int, "%d");
 SETImpl(END_PADDING, int, "%d");
 
+void set_logger_log_level(log_level_t level) {
+    set_log_level(level);
+}
+
 #define PUSH(s, n) (s[s##_ptr++] = (n))
 #define POP(s, n) (n = s[--s##_ptr])
 #define TOP(s, n) (n = s[s##_ptr-1])

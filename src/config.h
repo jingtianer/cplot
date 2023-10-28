@@ -2,7 +2,7 @@
 #define _CONFIG_H_
 
 // ***examples***
-// #define EXEC_EXAMPLES // execute examples
+#define EXEC_EXAMPLES // execute examples
 // #define OPEN_EXAMPLES // open the examples
 
 
@@ -55,17 +55,17 @@
 
 // *****debug levels*****
 /*
-DEBUG_LOG 7
-INFO_LOG 5
-ERR_LOG 4
+DEBUG_LOG 
+INFO_LOG 
+ERR_LOG 
 */
 #ifndef LOG_LEVEL
-#define LOG_LEVEL 5 // set log level
+#define LOG_LEVEL INFO_LOG // set log level
 #endif
 
 // *****fast-mode*****
 
-// #define FAST_MODE
+#define FAST_MODE
 
 
 

@@ -160,8 +160,10 @@ int main(int argc, char** argv) {
         example("%s \"-10\" \"10\" 300 \"-10\" \"10\" 300 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
         example("%s \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\" 2>errs.log 1>out25.png", argv[0]);
         example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\" 2>errs.log 1>out26.png", argv[0]);
+        example("%s \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"SIN(x*x+y*y)=1\" 2>errs.log 1>out27.png", argv[0]);
         exit(0);
     }
+
     set_bg_color(BG_COLOR);
     set_brush_size(BRUSH_SIZE);
     set_brush_color(BRUSH_COLOR);
@@ -173,6 +175,7 @@ int main(int argc, char** argv) {
     set_TOP_PADDING(TOP_PADDING);
     set_END_MARGIN(END_MARGIN);
     set_END_PADDING(END_PADDING);
+    set_logger_log_level(LOG_LEVEL);
     #ifdef FAST_MODE
     enable_fastmode(true);
     #else

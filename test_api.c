@@ -22,6 +22,7 @@ void set_cplot_attrs(FILE *output) {
     set_margin(15);
     set_padding(10);
     set_output_file(output);
+    // set_logger_log_level(INFO_LOG);
 }
 
 int main(int argc, char** argv) {

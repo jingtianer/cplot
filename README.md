@@ -89,6 +89,7 @@ all configuration defined in [config.h](./src/config.h)
 
 > example code
 ```c
+
 #include <stdio.h>
 #include <cplot.h>
 #define PI 3.1415926
@@ -112,6 +113,7 @@ void set_cplot_attrs(FILE *output) {
     set_margin(15);
     set_padding(10);
     set_output_file(output);
+    // set_logger_log_level(INFO_LOG);
 }
 
 int main(int argc, char** argv) {
@@ -169,6 +171,7 @@ $CC -o test_api test.c -I /usr/include/cplot/ -lcplot
 ![example-24](./examples/eg24.png)
 ![example-25](./examples/eg25.png)
 ![example-26](./examples/eg26.png)
+![example-26](./examples/eg27.png)
 
 
 ```sh
@@ -200,4 +203,5 @@ examples:
         cplotter "-10" "10" 300 "-10" "10" 300 "Y=X^X"  2>errs.log 1>out24.png
         cplotter "0" "10" 300 "-8" "8" 300 "Y=10/(1+EXP(-X))" 2>errs.log 1>out25.png
         cplotter "-1" "1" 300 "-2*pi" "2*pi" 300 "Y=SIN(1/X)" 2>errs.log 1>out26.png
+        cplotter "-SQRT(2*pi*(1/4+$k))" "SQRT(2*pi*(1/4+$k))" 800 "-SQRT(2*pi*(1/4+$k))" "SQRT(2*pi*(1/4+$k))" 800 "SIN(x*x+y*y)=1" 2>errs.log 1>out27.png
 ```

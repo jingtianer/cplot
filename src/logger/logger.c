@@ -1,10 +1,14 @@
 #include "logger.h"
-#include "../config.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+static log_level_t log_level = INFO_LOG;
+void set_log_level(log_level_t level) {
+    log_level = level;
+}
+
 void logger(int level, const char* format, ...) {
-    if (level > LOG_LEVEL) return;
+    if (level > log_level) return;
     va_list args;
     va_start(args, format);
     int len = vsnprintf(NULL, 0, format, args) + 1;
