@@ -78,13 +78,13 @@ jobs:
         prerelease: false
 
     - name: Upload Artifact cplot.so
-      uses: actions/upload-artifact@latest
+      uses: actions/upload-artifact@v2
       with: 
         name: cplot.so
         path: ${{ steps.strings.outputs.build-output-dir }}
     
     - name: Upload Artifact cplotter
-      uses: actions/upload-artifact@latest
+      uses: actions/upload-artifact@v2
       with: 
         name: cplotter
         path: ${{ steps.strings.outputs.build-output-dir }}
