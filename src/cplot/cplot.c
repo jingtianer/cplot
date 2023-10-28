@@ -11,48 +11,60 @@
 #include "../../svpng/svpng.inc"
 #include "../logger/logger.h"
 #include "include/cplot.h"
+#undef _CPLOT_SETTERS_H_
+#include "include/setters.h"
+
+bool plot_y_axis = false, plot_x_axis = false;
+number_t y_scale_len = 0, x_scale_len = 0;
+unsigned int y_scale_color = 0, x_scale_color = 0;
+
+#define SET_AXIS_IMPL(axis) SET_AXIS(axis) { \
+    plot_##axis##_axis = enable; \
+    axis##_scale_len = len; \
+    axis##_scale_color = color; \
+    logger(DEBUG_LOG, "set_" #axis "_axis: enable=%s, len=%Lf", (enable ? "true" : "false"), len); \
+}
+SET_AXIS_IMPL(x);
+SET_AXIS_IMPL(y);
+
 static number_t x1, x2, _y1, _y2, sy, sx;
 static number_t deltaX, deltaY;
 
 static unsigned int brush_size = 0;
 static unsigned int bg_color = 0xFFFFFFFF;
 static unsigned int brush_color = 0x000000FF;
-static unsigned char R = 0x00, G = 0x00, B = 0x00, A = 0x00;
-static unsigned char BG_R = 0xFF, BG_G = 0xFF, BG_B = 0xFF, BG_A = 0xFF;
 static bool fast_mode = false;
 static FILE* output_file = NULL;
 void enable_fastmode(bool enable) {
     fast_mode = enable;
     logger(DEBUG_LOG, "enable fast mode = %s", (enable ? "true" : "false"));
 }
-#define SET(x, type) void set_##x(type n)
-#define SETImpl(x, type, formatter) SET(x, type) { x = n; logger(DEBUG_LOG, "set " #x " = " formatter, x); }
+#define SETImpl(x, type, formatter) SET(x, type) { \
+    x = n; \
+    logger(DEBUG_LOG, "set " #x " = " formatter, x); \
+}
+
+#define SET_R(color, val) ((color) |= (val) << (3 << 3))
+#define SET_G(color, val) ((color) |= (val) << (2 << 3))
+#define SET_B(color, val) ((color) |= (val) << (1 << 3))
+#define SET_A(color, val) ((color) |= (val) << (0 << 3))
+#define GET_R(color) (color >> (3 << 3)) & 0xff
+#define GET_G(color) (color >> (2 << 3)) & 0xff
+#define GET_B(color) (color >> (1 << 3)) & 0xff
+#define GET_A(color) (color >> (0 << 3)) & 0xff
+#define SETCOLORImpl(x, writeto, color) SET(x, unsigned char) { SET_##color(writeto, n); logger(DEBUG_LOG, "set " #x " = %x", n); }
 SETImpl(brush_size, u_int32_t, "%u");
 SETImpl(output_file, FILE*, "%p");
-SETImpl(R, u_int8_t, "%u");
-SETImpl(G, u_int8_t, "%u");
-SETImpl(B, u_int8_t, "%u");
-SETImpl(A, u_int8_t, "%u");
-SETImpl(BG_R, u_int8_t, "%u");
-SETImpl(BG_G, u_int8_t, "%u");
-SETImpl(BG_B, u_int8_t, "%u");
-SETImpl(BG_A, u_int8_t, "%u");
-SET(brush_color, u_int32_t) {
-    brush_color = n;
-    R = (n >> (3 << 3)) & 0xff;
-    G = (n >> (2 << 3)) & 0xff;
-    B = (n >> (1 << 3)) & 0xff;
-    A = (n >> (0 << 3)) & 0xff;
-    logger(DEBUG_LOG, "set brush_color = %u", brush_color);
-}
-SET(bg_color, u_int32_t) {
-    bg_color = n;
-    BG_R = (n >> (3 << 3)) & 0xff;
-    BG_G = (n >> (2 << 3)) & 0xff;
-    BG_B = (n >> (1 << 3)) & 0xff;
-    BG_A = (n >> (0 << 3)) & 0xff;
-    logger(DEBUG_LOG, "set bg_color = %u", bg_color);
-}
+SETCOLORImpl(R, brush_color, R)
+SETCOLORImpl(G, brush_color, G)
+SETCOLORImpl(B, brush_color, B)
+SETCOLORImpl(A, brush_color, A)
+SETCOLORImpl(BG_R, bg_color, R)
+SETCOLORImpl(BG_G, bg_color, G)
+SETCOLORImpl(BG_B, bg_color, B)
+SETCOLORImpl(BG_A, bg_color, A)
+SETImpl(brush_color, u_int32_t, "%u")
+SETImpl(bg_color, u_int32_t, "%u")
 int LEFT_MARGIN, RIGHT_MARGIN, LEFT_PADDING, RIGHT_PADDING,
 TOP_MARGIN, END_MARGIN, TOP_PADDING, END_PADDING;
 int padding, margin;
@@ -518,34 +530,24 @@ INIT_IMPL(deltaY)
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius) {
+void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius, unsigned int color) {
     for (int y = max(-radius, -i); y <= min(radius, h - i - 1); y++) {
         for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
             if (sqrt(x * x + y * y) > radius) continue;
             unsigned char* p = rgba + 4 * w * (i + y) + 4 * (j + x);
-            *p++ = R;
-            *p++ = G;
-            *p++ = B;
-            *p++ = A;
+            *p++ = GET_R(color);
+            *p++ = GET_G(color);
+            *p++ = GET_B(color);
+            *p++ = GET_A(color);
         }
     }
 }
 
-void plot_png(char** argv) {
+void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     //    int expr_cnt = 0;
     //    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
-    int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
     //    int h = ceill(sy);
     //    int w = ceill(sx);
-    number_t dx = deltaX / w;
-    number_t dy = deltaY / h;
-    logger(DEBUG_LOG, "x = %d, y = %d", h, w);
-    unsigned char* rgba = malloc(
-        sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
-    if (rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
     //    number_t *z_cache = malloc(
     //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
     //            (h + TOP_PADDING + END_PADDING + 2) * expr_cnt), *z_cache_ptr;
@@ -557,13 +559,6 @@ void plot_png(char** argv) {
     //        }
     //    }
     unsigned char* p = rgba;
-    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING); i++) {
-        *p++ = BG_R;
-        *p++ = BG_G;
-        *p++ = BG_B;
-        *p++ = BG_A;
-    }
     accu = max(dx, dy);
     //    z_cache_ptr = z_cache;
     //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
@@ -634,13 +629,56 @@ void plot_png(char** argv) {
                     i + TOP_MARGIN, j + LEFT_MARGIN,
                     w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
                     h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
-                    brush_size
+                    brush_size,
+                    color
                 );
             }
         }
         //        z_cache_ptr += expr_cnt;
     }
     //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
+    //    free(z_cache);
+}
+
+void plot_png(char** argv) {
+    //    int expr_cnt = 0;
+    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
+    int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
+    int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
+    //    int h = ceill(sy);
+    //    int w = ceill(sx);
+    number_t dx = deltaX / w;
+    number_t dy = deltaY / h;
+    logger(DEBUG_LOG, "x = %d, y = %d", h, w);
+    unsigned char* rgba = malloc(
+        sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
+    if (rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
+
+    unsigned char* p = rgba;
+    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING); i++) {
+        *p++ = GET_R(bg_color);
+        *p++ = GET_G(bg_color);
+        *p++ = GET_B(bg_color);
+        *p++ = GET_A(bg_color);
+    }
+    plot_buffer(argv, rgba, h, w, dx, dy, brush_color);
+    if(plot_x_axis) {
+        char x_axis[] = "y=0";
+        char *x_scale = NULL;
+        alloc_sprintf(&x_scale, "x=CEIL(X),y>0,y<%Lf", x_scale_len);
+        char *x_axis_args[] = {x_axis, x_scale, NULL};
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color);
+    }
+    if(plot_y_axis) {
+        char x_axis[] = "x=0";
+        char *x_scale = NULL;
+        alloc_sprintf(&x_scale, "y=CEIL(Y),x>0,x<%Lf", y_scale_len);
+        char *x_axis_args[] = {x_axis, x_scale, NULL};
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color);
+    }
     if(output_file == NULL) {
         output_file = stdout;
     }

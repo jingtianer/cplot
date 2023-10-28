@@ -9,7 +9,7 @@ add_definitions(-DSVPNG_LINKAGE=static)
 
 set(SRC_DIR src)
 set(PRI_INCLUDE ${SRC_DIR}/logger/logger.h ${SRC_DIR}/config.h ${SRC_DIR}/../svpng/svpng.inc)
-set(PUB_INCLUDE ${SRC_DIR}/cplot/include/cplot.h ${SRC_DIR}/cplot/include/log_levels.h)
+set(PUB_INCLUDE ${SRC_DIR}/cplot/include/cplot.h ${SRC_DIR}/cplot/include/log_levels.h ${SRC_DIR}/cplot/include/setters.h)
 set(SRC_FILES ${SRC_DIR}/logger/logger.c)
 
 add_library(cplot SHARED ${SRC_DIR}/cplot/cplot.c ${SRC_FILES})

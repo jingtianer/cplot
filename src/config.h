@@ -65,7 +65,7 @@ ERR_LOG
 
 // *****fast-mode*****
 
-#define FAST_MODE
+// #define FAST_MODE
 
 
 

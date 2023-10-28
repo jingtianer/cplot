@@ -130,6 +130,8 @@ void set_cplot_attrs(FILE *output) {
     //set_LEFT_PADDING(10); set_RIGHT_PADDING(10); set_TOP_PADDING(10); set_END_PADDING(10);
     set_output_file(output);
     // set_logger_log_level(INFO_LOG);
+    // set_x_axis(true, 0.1, 0xffffffff); // enable x-axis, len of scale is 0.1, color is 0xffffffff
+    // set_y_axis(true, 0.1, 0xffffffff); // enable y-axis, len of scale is 0.1, color is 0xffffffff
 }
 
 int main(int argc, char** argv) {
@@ -139,7 +141,7 @@ int main(int argc, char** argv) {
     set_cplot_attrs(output);
     char expr0[] = "y=SIN(x)";
     char expr1[] = "y=COS(x)";
-    char* plot_args[] = { expr0, expr1, NULL };
+    char* plot_args[] = { expr0, expr1, NULL};
     plot_png(plot_args);
     fclose(output);
     return 0;
