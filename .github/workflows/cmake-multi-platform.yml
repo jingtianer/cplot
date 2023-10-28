@@ -74,6 +74,17 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: Upload Artifact cplot.so
+      uses: actions/upload-artifact@v2
+      with: 
+        name: cplot.so
+        path: ${{ steps.strings.outputs.build-output-dir }}
+    
+    - name: Upload Artifact cplotter
+      uses: actions/upload-artifact@v2
+      with: 
+        name: cplotter
+        path: ${{ steps.strings.outputs.build-output-dir }}
     - name: Upload Release cplot.so
       id: upload_release_asset
       uses: actions/upload-release-asset@v1.0.1
@@ -81,7 +92,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/cplot.so
+        asset_path: ${{ steps.strings.outputs.build-output-dir }}
         asset_name: cplot.so
         asset_content_type: application/octet-stream
     - name: Upload Release cplotter
@@ -91,6 +102,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.build-output-dir }}/cplotter
+        asset_path: ${{ steps.strings.outputs.build-output-dir }}
         asset_name: cplotter
         asset_content_type: application/octet-stream
