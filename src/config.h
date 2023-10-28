@@ -2,7 +2,7 @@
 #define _CONFIG_H_
 
 // ***examples***
-#define EXEC_EXAMPLES // execute examples
+// #define EXEC_EXAMPLES // execute examples
 // #define OPEN_EXAMPLES // open the examples
 
 
@@ -49,6 +49,18 @@
 #define TOP_PADDING     10
 #define END_PADDING     10
 #endif
+
+// *****axis*****
+// #define ENABLE_Y_AXIS
+#define Y_SCALE_LENGTH 0.1
+#define Y_SCALE_COLOR 0x000000ff
+
+// #define ENABLE_X_AXIS
+#define X_SCALE_LENGTH 0.1
+#define X_SCALE_COLOR 0x000000ff
+
+// *****output file*****
+// #define OUTPUT_FILE "./out.png"
 
 
 // ***other configs***
@@ -181,4 +193,11 @@ ERR_LOG
 #error "#define EXEC_EXAMPLES please"
 #endif
 
+#if defined(Y_SCALE_COLOR) + defined(Y_SCALE_LENGTH) != 2 && defined(ENABLE_Y_AXIS)
+error "you should define Y_SCALE_COLOR and Y_SCALE_LENGTH if you ENABLE_Y_AXIS"
+#endif
+
+#if defined(X_SCALE_COLOR) + defined(X_SCALE_LENGTH) != 2 && defined(ENABLE_X_AXIS)
+error "you should define X_SCALE_COLOR and X_SCALE_LENGTH if you ENABLE_X_AXIS"
+#endif
 #endif

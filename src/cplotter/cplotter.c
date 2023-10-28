@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../logger/logger.h"
 #include "../cplot/include/cplot.h"
 #include "../config.h"
@@ -39,6 +40,8 @@ platform_t platform() {
 }
 
 int example(const char* format, ...) {
+    static int example_cnt = 0;
+    example_cnt++;
     va_list args;
     va_start(args, format);
     int len = vsnprintf(NULL, 0, format, args) + 1;
@@ -47,24 +50,47 @@ int example(const char* format, ...) {
     char* str = malloc(len);
     vsprintf(str, format, args);
     va_end(args);
-#ifdef EXEC_EXAMPLES
-    system(str);
+#ifdef OUTPUT_FILE
+    char *output_file = strdup(OUTPUT_FILE);
+#else
+    char *output_file;
+    alloc_sprintf(&output_file, "out%d"
+    #ifdef USE_PNG
+    ".png"
+    #endif
+    , example_cnt);
 #endif
-    logger(INFO_LOG, "\t%s", str);
+    char *command;
+    alloc_sprintf(&command, "%s"
+    #ifndef OUTPUT_FILE
+    " 2>errs.log 1>%s"
+    #endif
+    , str
+    #ifndef OUTPUT_FILE
+    , output_file
+    #endif
+    );
+#ifdef EXEC_EXAMPLES
+    system(command);
+#endif
+    logger(INFO_LOG, "\t%s", command);
 #ifdef OPEN_EXAMPLES
     if (platform() == platform_apple || platform() == platform_linux) {
         char* show;
-        alloc_sprintf(&show, "open ./%s", strrchr(str, '>') + 1);
+        alloc_sprintf(&show, "open ./%s", output_file);
         system(show);
         free(show);
     } else if (platform() == platform_win32 || platform() == platform_win64) {
         char* show;
-        alloc_sprintf(&show, "./%s", strrchr(str, '>') + 1);
+        alloc_sprintf(&show, "./%s", output_file);
         system(show);
         free(show);
+    } else {
+        logger(INFO_LOG, "can not open, unsupported platform.");
     }
 #endif
-    free(str);
+    free(command);
+    free(output_file);
     return len;
 }
 
@@ -119,48 +145,48 @@ int main(int argc, char** argv) {
     if (argc < 8) {
         char* str;
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sx expression\nexamples:", argv[0]);
-        example("%s \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\" 2>errs.log 1>out1.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\" 2>errs.log 1>out2.png", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\" 2>errs.log 1>out3.png", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 300 \"-pi/2\" \"pi/2\" 300 \"y*y+x*x+y-SQRT(y*y+x*x)=0\" 2>errs.log 1>out4.png",
+        example("%s \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\"", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\"", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\"", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 300 \"-pi/2\" \"pi/2\" 300 \"y*y+x*x+y-SQRT(y*y+x*x)=0\"",
             argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\" 2>errs.log 1>out5.png",
+        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y=0\" \"y-SQRT(1-(FABS(x)-1)^2)=0\"",
             argv[0]);
-        example("%s \"-1\" \"pi/2\" 300 \"-1\" \"1\" 300 \"x*x+(y-FABS(x)^(2/3.0))^2-1=0\" 2>errs.log 1>out6.png",
+        example("%s \"-1\" \"pi/2\" 300 \"-1\" \"1\" 300 \"x*x+(y-FABS(x)^(2/3.0))^2-1=0\"",
             argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"0\" \"2*pi\" \"300\" \"y-5*EXP(-x)*SIN(6*x)=0\" 2>errs.log 1>out7.png",
+        example("%s \"-4\" \"4\" \"300\" \"0\" \"2*pi\" \"300\" \"y-5*EXP(-x)*SIN(6*x)=0\"",
             argv[0]);
-        example("%s \"0\" \"3\" 300 \"0\" \"9\" 300 \"y-SQRT(9-x)=0\" 2>errs.log 1>out8.png", argv[0]);
-        example("%s \"0\" \"1\" 300 \"0\" \"1\" 300 \"y-X=0\" 2>errs.log 1>out9.png", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)+SIN(Y)=0\" 2>errs.log 1>out10.png",
+        example("%s \"0\" \"3\" 300 \"0\" \"9\" 300 \"y-SQRT(9-x)=0\"", argv[0]);
+        example("%s \"0\" \"1\" 300 \"0\" \"1\" 300 \"y-X=0\"", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)+SIN(Y)=0\"",
             argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)*SIN(Y)=0\" 2>errs.log 1>out11.png",
+        example("%s \"-1.5*pi\" \"4.5*pi\" 300 \"-1.5*pi\" \"4.5*pi\" 300 \"SIN(X)*SIN(Y)=0\"",
             argv[0]);
-        example("%s \"-8*pi\" \"8*pi\" 300 \"-8*pi\" \"8*pi\" 300 \"COS(x+SIN(y))-TAN(y)=0\" 2>errs.log 1>out12.png",
+        example("%s \"-8*pi\" \"8*pi\" 300 \"-8*pi\" \"8*pi\" 300 \"COS(x+SIN(y))-TAN(y)=0\"",
             argv[0]);
-        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\" 2>errs.log 1>out13.png",
+        example("%s \"-pi\" \"1\" 300 \"-2\" \"2\" 300 \"(ACOS(1-FABS(x))-pi)-y<=0,y-SQRT(1-(FABS(x)-1)^2)<=0\"",
             argv[0]);
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0,y-SQRT(x)=0\" 2>errs.log 1>out14.png",
+        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0,y-SQRT(x)=0\"",
             argv[0]); // 求交点的情况 and
-        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0\" \"y-SQRT(x)=0\" 2>errs.log 1>out15.png",
+        example("%s \"-1\" \"2\" 300 \"-1\" \"4\" 300 \"y-x=0\" \"y-SQRT(x)=0\"",
             argv[0]); // 求交点的情况 or
-        example("%s \"-2*pi\" \"2*pi\" \"800\" \"-2*pi\" \"2*pi\" \"800\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\" 2>errs.log 1>out16.png",
+        example("%s \"-2*pi\" \"2*pi\" \"800\" \"-2*pi\" \"2*pi\" \"800\" \"SIN(X*x+Y*y)-SIN(X)-SIN(Y)=0\"",
             argv[0]);
-        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X*Y)=0\" 2>errs.log 1>out17.png",
+        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X*Y)=0\"",
             argv[0]);
-        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X-Y)=0\" 2>errs.log 1>out18.png",
+        example("%s \"-pi\" \"pi\" \"800\" \"-pi\" \"pi\" \"800\" \"SIN(X*x+Y*y)-COS(X-Y)=0\"",
             argv[0]);
-        example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\" 2>errs.log 1>out19.png", argv[0]);
-        example("%s \"-4*pi\" \"4*pi\" \"800\" \"-4*pi\" \"4*pi\" \"800\" \"SIN(SIN(X*Y))=0\" 2>errs.log 1>out20.png",
+        example("%s \"-4\" \"4\" \"300\" \"-4\" \"4\" \"300\" \"FLOOR(X)-y=0\"", argv[0]);
+        example("%s \"-4*pi\" \"4*pi\" \"800\" \"-4*pi\" \"4*pi\" \"800\" \"SIN(SIN(X*Y))=0\"",
             argv[0]);
-        example("%s \"-1\" 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\" 2>errs.log 1>out21.png", argv[0]);
-        example("%s \"-1\" 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\" 2>errs.log 1>out22.png", argv[0]);
-        example("%s \"-3*pi/2\" \"3*pi/2\" 300 \"-3*pi/2\" \"3*pi/2\" 300 \"SIN(x*x)+SIN(y*y)=1\"  2>errs.log 1>out23.png",
+        example("%s \"-1\" 1 300 -8 8 300 \"(COS(pi*X)+COS(pi*X^2))/2=y\"", argv[0]);
+        example("%s \"-1\" 1 300 -2.5 2.5 300 \"(COS(pi*X)+COS(pi*X^2)+COS(pi*X^3))/3=y\"", argv[0]);
+        example("%s \"-3*pi/2\" \"3*pi/2\" 300 \"-3*pi/2\" \"3*pi/2\" 300 \"SIN(x*x)+SIN(y*y)=1\" ",
             argv[0]);
-        example("%s \"-10\" \"10\" 300 \"-10\" \"10\" 300 \"Y=X^X\"  2>errs.log 1>out24.png", argv[0]);
-        example("%s \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\" 2>errs.log 1>out25.png", argv[0]);
-        example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\" 2>errs.log 1>out26.png", argv[0]);
-        example("%s \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"SIN(x*x+y*y)=1\" 2>errs.log 1>out27.png", argv[0]);
+        example("%s \"-10\" \"10\" 300 \"-10\" \"10\" 300 \"Y=X^X\" ", argv[0]);
+        example("%s \"0\" \"10\" 300 \"-8\" \"8\" 300 \"Y=10/(1+EXP(-X))\"", argv[0]);
+        example("%s \"-1\" \"1\" 300 \"-2*pi\" \"2*pi\" 300 \"Y=SIN(1/X)\"", argv[0]);
+        example("%s \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"-SQRT(2*pi*(1/4+8))\" \"SQRT(2*pi*(1/4+8))\" 800 \"SIN(x*x+y*y)=1\"", argv[0]);
         exit(0);
     }
 
@@ -176,13 +202,26 @@ int main(int argc, char** argv) {
     set_END_MARGIN(END_MARGIN);
     set_END_PADDING(END_PADDING);
     set_logger_log_level(LOG_LEVEL);
+    #ifdef ENABLE_X_AXIS
+    set_x_axis(true, X_SCALE_LENGTH, X_SCALE_COLOR);
+    #endif
+    #ifdef ENABLE_Y_AXIS
+    set_y_axis(true, Y_SCALE_LENGTH, Y_SCALE_COLOR);
+    #endif
     #ifdef FAST_MODE
     enable_fastmode(true);
     #else
     enable_fastmode(false);
     #endif
+    #ifdef OUTPUT_FILE
+    FILE *outfile = fopen(OUTPUT_FILE, "w");
+    set_output_file(outfile);
+    #endif
     init(argv + 1);
     plot_png(argv + 7);
+    #ifdef OUTPUT_FILE
+    fclose(outfile);
+    #endif
     return 0;
 }
 
@@ -190,19 +229,24 @@ int main(int argc, char** argv) {
 int main(int argc, char** argv) {
     if (argc < 8) {
         logger(INFO_LOG, "Usage: %s y1 y2 sy x1 x2 sy expression\nexamples:", argv[0]);
-        example("%s \"-1\" 1 0.125 -1 1 0.0625 \"x*x+y*y-1>0\" 2>errs.log 1>out1", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2<0\" 2>errs.log 1>out2", argv[0]);
-        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2<0\" 2>errs.log 1>out3", argv[0]);
-        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)>0\" 2>errs.log 1>out4", argv[0]);
-        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y<0,y-SQRT(1-(FABS(x)-1)^2)<0\" 2>errs.log 1>out5", argv[0]);
-        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1<0\" 2>errs.log 1>out6", argv[0]);
-        example("%s \"-4\" \"4\" \"8/32\" \"0\" \"2*pi\" \"2*pi/64\" \"y-5*EXP(-x)*SIN(6*x)<0\" 2>errs.log 1>out7", argv[0]);
-        example("%s \"0\" \"3\" \"3/32\" \"0\" \"9\" \"9/32\" \"y-SQRT(X)>0\" 2>errs.log 1>out8", argv[0]);
-        example("%s \"0\" \"1\" \"1/32\" \"0\" \"1\" \"1/32\" \"y-X<0\" 2>errs.log 1>out9", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"SIN(X)+SIN(Y)>0\" 2>errs.log 1>out10", argv[0]);
-        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/64\" \"SIN(X)*SIN(Y)>0\" 2>errs.log 1>out11", argv[0]);
+        example("%s \"-1\" 1 0.125 -1 1 0.0625 \"x*x+y*y-1>0\"", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x+y)^2<0\"", argv[0]);
+        example("%s \"-pi/2\" \"pi/2\" 0.25 \"-3*pi\" \"2*pi\" 0.125 \"y^2-SIN(x)^2<0\"", argv[0]);
+        example("%s \"-2\" \"ACOS(1/2)-pi/4\" 0.125 \"-pi/2\" \"pi/2\" 0.0625 \"y*y+x*x+y-SQRT(y*y+x*x)>0\"", argv[0]);
+        example("%s \"-pi\" \"1\" 0.125 \"-2\" \"2\" 0.0625 \"(ACOS(1-FABS(x))-pi)-y<0,y-SQRT(1-(FABS(x)-1)^2)<0\"", argv[0]);
+        example("%s \"-1\" \"pi/2\" 0.125 \"-1\" \"1\" 0.0625 \"x*x+(y-FABS(x)^(2.0/3.0))^2-1<0\"", argv[0]);
+        example("%s \"-4\" \"4\" \"8/32\" \"0\" \"2*pi\" \"2*pi/64\" \"y-5*EXP(-x)*SIN(6*x)<0\"", argv[0]);
+        example("%s \"0\" \"3\" \"3/32\" \"0\" \"9\" \"9/32\" \"y-SQRT(X)>0\"", argv[0]);
+        example("%s \"0\" \"1\" \"1/32\" \"0\" \"1\" \"1/32\" \"y-X<0\"", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"SIN(X)+SIN(Y)>0\"", argv[0]);
+        example("%s \"-1.5*pi\" \"4.5*pi\" \"6*pi/32\" \"-1.5*pi\" \"4.5*pi\" \"6*pi/64\" \"SIN(X)*SIN(Y)>0\"", argv[0]);
         exit(0);
     }
+    #ifdef OUTPUT_FILE
+    FILE *outfile = fopen(OUTPUT_FILE, "w");
+    #else
+    FILE *stderr = fopen(OUTPUT_FILE, "w");
+    #endif
     INIT(argv + 1);
     accu = max(sy, sx);
     for (number_t i = _y2; i >= _y1; ) {
@@ -216,15 +260,18 @@ int main(int argc, char** argv) {
                 }
             }
             if (ok) {
-                printf("%c", INNER_CHAR);
+                fprintf(outfile, "%c", INNER_CHAR);
             } else {
-                printf("%c", OUTER_CHAR);
+                fprintf(outfile, "%c", OUTER_CHAR);
             }
             j += sx;
         }
         printf("\n");
         i -= sy;
     }
+    #ifdef OUTPUT_FILE
+    fclose(outfile);
+    #endif
     return 0;
 }
 #endif
