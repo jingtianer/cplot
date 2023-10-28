@@ -1,30 +1,19 @@
+#define _XOPEN_SOURCE 500
+#include <math.h>
 #include <stdio.h>
 #include <cplot.h>
 // #include <setters.h>
-#define PI 3.1415926
 
-void init_cplot() {
+void init_cplot(int i) {
     // use init_* api
-    init__y1(-1);
-    init__y2(1);
-    init_x1(-PI);
-    init_x2(PI);
-    init_deltaX(2*PI);
-    init_deltaY(2);
+    init__y1(i);
+    init__y2(1+i);
+    init_x1(0);
+    init_x2(M_PI_2);
+    init_deltaX(M_PI_2);
+    init_deltaY(1);
     init_sy(300);
     init_sx(300);
-}
-
-void init_cplot_by_args() {
-    // use command line args
-    char y1[] = "-1";
-    char y2[] = "1";
-    char x1[] = "-pi";
-    char x2[] = "pi";
-    char sx[] = "300";
-    char sy[] = "300";
-    char *args[] = {y1, y2, sy, x1, x2, sx, NULL};
-    init(args);
 }
 
 void set_cplot_attrs(FILE *output) {
@@ -38,21 +27,23 @@ void set_cplot_attrs(FILE *output) {
     //set_LEFT_MARGIN(10); set_RIGHT_MARGIN(10); set_TOP_MARGIN(10); set_END_MARGIN(10);
     set_padding(10); // equivalent to 
     //set_LEFT_PADDING(10); set_RIGHT_PADDING(10); set_TOP_PADDING(10); set_END_PADDING(10);
-    set_output_file(output);
     // set_logger_log_level(INFO_LOG);
     set_x_axis(true, 0.1, 0xffffffff, 0.5); // enable x-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 0.5
     set_y_axis(true, 0.1, 0xffffffff, 1); // enable y-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 1
 }
 
 int main(int argc, char** argv) {
-    FILE *output = fopen("api.png", "wb");
-    init_cplot();
     // init_cplot_by_args(); // or use command line args
-    set_cplot_attrs(output);
-    char expr0[] = "y=SIN(x)";
-    char expr1[] = "y=COS(x)";
-    char* plot_args[] = { expr0, expr1, NULL};
-    plot_png(plot_args);
-    fclose(output);
+    char fname[1280] = {0};
+    for(int i = 0; i < 100; i++) {
+        int n = snprintf(fname, 1280, "slop_%d.png", i);
+        FILE *output = fopen(fname, "wb");
+        set_output_file(output);
+        init_cplot(i);
+        char expr0[] = "y=TAN(x)";
+        char* plot_args[] = { expr0, NULL};
+        plot_png(plot_args);
+        fclose(output);
+    }
     return 0;
 }

@@ -91,6 +91,7 @@ all configuration defined in [config.h](./src/config.h)
 ```c
 #include <stdio.h>
 #include <cplot.h>
+// #include <setters.h>
 #define PI 3.1415926
 
 void init_cplot() {
@@ -130,8 +131,8 @@ void set_cplot_attrs(FILE *output) {
     //set_LEFT_PADDING(10); set_RIGHT_PADDING(10); set_TOP_PADDING(10); set_END_PADDING(10);
     set_output_file(output);
     // set_logger_log_level(INFO_LOG);
-    // set_x_axis(true, 0.1, 0xffffffff); // enable x-axis, len of scale is 0.1, color is 0xffffffff
-    // set_y_axis(true, 0.1, 0xffffffff); // enable y-axis, len of scale is 0.1, color is 0xffffffff
+    // set_x_axis(true, 0.1, 0xffffffff, 0.5); // enable x-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 0.5
+    // set_y_axis(true, 0.1, 0xffffffff, 1); // enable y-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 1
 }
 
 int main(int argc, char** argv) {

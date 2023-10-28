@@ -17,12 +17,13 @@
 bool plot_y_axis = false, plot_x_axis = false;
 number_t y_scale_len = 0, x_scale_len = 0;
 unsigned int y_scale_color = 0, x_scale_color = 0;
-
+number_t y_interval = 1, x_interval = 1;
 #define SET_AXIS_IMPL(axis) SET_AXIS(axis) { \
     plot_##axis##_axis = enable; \
     axis##_scale_len = len; \
     axis##_scale_color = color; \
-    logger(DEBUG_LOG, "set_" #axis "_axis: enable=%s, len=%Lf", (enable ? "true" : "false"), len); \
+    axis##_interval = interval; \
+    logger(DEBUG_LOG, "set_" #axis "_axis: enable=%s, len=%Lf, interval = %Lf", (enable ? "true" : "false"), len, interval); \
 }
 SET_AXIS_IMPL(x);
 SET_AXIS_IMPL(y);
@@ -546,8 +547,6 @@ void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius, un
 void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     //    int expr_cnt = 0;
     //    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    //    int h = ceill(sy);
-    //    int w = ceill(sx);
     //    number_t *z_cache = malloc(
     //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
     //            (h + TOP_PADDING + END_PADDING + 2) * expr_cnt), *z_cache_ptr;
@@ -568,8 +567,7 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
             bool ok = false;
             number_t z0, zx, zy;
-            number_t dzx = 0;
-            number_t dzy = 0;
+            number_t dzx = 0, dzy = 0;
             //            number_t *zptr = z_cache_ptr;
             //            z_cache_ptr += expr_cnt;
             for (char** expr = argv; *expr; expr++) {
@@ -579,45 +577,39 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                         dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                     int off[] = { 1, -1, -1, 1, 1 };
                     accu = 0;
-                    for (int offi = 0; offi <= 1; offi++) {
+                    for (int offi = 0; offi < 2; offi++) {
                         //                    zx = *(zptr + off[offi]*expr_cnt);
                         eval(-dy * (i - TOP_PADDING) + _y2,
-                            dx * (j - LEFT_PADDING + off[offi]) + x1, *expr, &zx);
-                        dzx = (zx - z0) / dx;
+                            dx * (j - LEFT_PADDING - off[offi]) + x1, *expr, &zx);
+                        
                         accu = max(accu, fabsl(z0 - zx));
-                        //                    if((z0 > 0 && dzx < 0) || (z0 < 0 && dzx > 0)) break;
+                        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) dzx = off[offi]*(zx - z0) / dx;;
                     }
-
-                    for (int offi = 0; offi <= 1; offi++) {
-                        //                    zy = *(zptr + off[offi]*expr_cnt*(w + LEFT_PADDING + RIGHT_PADDING + 2));
-                        eval(-dy * (i - TOP_PADDING + off[offi]) + _y2,
-                            dx * (j - LEFT_PADDING) + x1, *expr, &zy);
-                        dzy = (zy - z0) / dy;
+                    for (int offi = 0; offi < 2; offi++) {
+                        //                    zx = *(zptr + off[offi]*expr_cnt);
+                        eval(-dy * (i - TOP_PADDING - off[offi]) + _y2,
+                            dx * (j - LEFT_PADDING ) + x1, *expr, &zy);
+                        
                         accu = max(accu, fabsl(z0 - zy));
-                        //                    if((z0 > 0 && dzy < 0) || (z0 < 0 && dzy > 0)) break;
+                        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) dzy = off[offi]*(zy - z0) / dy;;
                     }
                     accu = min(accu, max(dx, dy));
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
-                    dx * (j - LEFT_PADDING) + x1, *expr, NULL);
+                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                 if (ok) goto draw;
                 if (!fast_mode) {
-                    if (z0 > 10 * max(dx, dy)) continue;
-                    logger(DEBUG_LOG, "dzx = %Le", dzx);
-                    logger(DEBUG_LOG, "dzy = %Le", dzy);
-                    number_t maxd = min(100, floorl(max(fabsl(dzx), fabsl(dzy))));
-                    for (int divx = 1; divx < maxd; divx++) {
-                        ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                            dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                        if (ok) goto draw;
-                        ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                            dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                        if (ok) goto draw;
-                        ok = eval(-dy * (i - TOP_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                            dx * (j - LEFT_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
-                        if (ok) goto draw;
-                        ok = eval(-dy * (i - TOP_PADDING + divx / max(fabsl(dzx), fabsl(dzy))) + _y2,
-                            dx * (j - LEFT_PADDING - divx / max(fabsl(dzx), fabsl(dzy))) + x1, *expr, NULL);
+                    // if (fabsl(z0) > max(dx, dy)) continue;
+                    logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
+                    number_t maxd = max(fabsl(dzx), fabsl(dzy));
+                    if(dzx == 0 || dzy == 0) continue;
+                    dzx = dzx > 0 ? maxd : -maxd;
+                    dzy = dzy > 0 ? maxd : -maxd;
+                    // int maxd_try_time = powl(10, 2*atanl(maxd/tan(7/16.0*M_PI))/M_PI_2)-1;
+                    int maxd_try_time = min(100, maxd); // todo: find a function max(y)=+inf, and efficient
+                    for (int divx = 1; divx < maxd_try_time; divx++) {
+                        ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
+                            dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
                         if (ok) goto draw;
                     }
                 }
@@ -668,14 +660,14 @@ void plot_png(char** argv) {
     if(plot_x_axis) {
         char x_axis[] = "y=0";
         char *x_scale = NULL;
-        alloc_sprintf(&x_scale, "x=CEIL(X),y>0,y<%Lf", x_scale_len);
+        alloc_sprintf(&x_scale, "x=CEIL(X/%Lf)*%Lf,y>0,y<%Lf", x_interval, x_interval, x_scale_len);
         char *x_axis_args[] = {x_axis, x_scale, NULL};
         plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color);
     }
     if(plot_y_axis) {
         char x_axis[] = "x=0";
         char *x_scale = NULL;
-        alloc_sprintf(&x_scale, "y=CEIL(Y),x>0,x<%Lf", y_scale_len);
+        alloc_sprintf(&x_scale, "y=CEIL(Y/%Lf)*%Lf,x>0,x<%Lf", y_interval, y_interval, y_scale_len);
         char *x_axis_args[] = {x_axis, x_scale, NULL};
         plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color);
     }

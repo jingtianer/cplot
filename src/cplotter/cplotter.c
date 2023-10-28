@@ -203,10 +203,10 @@ int main(int argc, char** argv) {
     set_END_PADDING(END_PADDING);
     set_logger_log_level(LOG_LEVEL);
     #ifdef ENABLE_X_AXIS
-    set_x_axis(true, X_SCALE_LENGTH, X_SCALE_COLOR);
+    set_x_axis(true, X_SCALE_LENGTH, X_SCALE_COLOR, X_SCALE_INTERVAL);
     #endif
     #ifdef ENABLE_Y_AXIS
-    set_y_axis(true, Y_SCALE_LENGTH, Y_SCALE_COLOR);
+    set_y_axis(true, Y_SCALE_LENGTH, Y_SCALE_COLOR, Y_SCALE_INTERVAL);
     #endif
     #ifdef FAST_MODE
     enable_fastmode(true);

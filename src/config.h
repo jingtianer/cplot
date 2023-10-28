@@ -54,10 +54,12 @@
 // #define ENABLE_Y_AXIS
 #define Y_SCALE_LENGTH 0.1
 #define Y_SCALE_COLOR 0x000000ff
+#define Y_SCALE_INTERVAL 1
 
 // #define ENABLE_X_AXIS
 #define X_SCALE_LENGTH 0.1
 #define X_SCALE_COLOR 0x000000ff
+#define X_SCALE_INTERVAL 0.5
 
 // *****output file*****
 // #define OUTPUT_FILE "./out.png"
@@ -193,11 +195,11 @@ ERR_LOG
 #error "#define EXEC_EXAMPLES please"
 #endif
 
-#if defined(Y_SCALE_COLOR) + defined(Y_SCALE_LENGTH) != 2 && defined(ENABLE_Y_AXIS)
+#if defined(Y_SCALE_COLOR) + defined(Y_SCALE_LENGTH) + defined(Y_SCALE_INTERVAL) != 3 && defined(ENABLE_Y_AXIS)
 error "you should define Y_SCALE_COLOR and Y_SCALE_LENGTH if you ENABLE_Y_AXIS"
 #endif
 
-#if defined(X_SCALE_COLOR) + defined(X_SCALE_LENGTH) != 2 && defined(ENABLE_X_AXIS)
+#if defined(X_SCALE_COLOR) + defined(X_SCALE_LENGTH) + defined(X_SCALE_INTERVAL) != 3 && defined(ENABLE_X_AXIS)
 error "you should define X_SCALE_COLOR and X_SCALE_LENGTH if you ENABLE_X_AXIS"
 #endif
 #endif
