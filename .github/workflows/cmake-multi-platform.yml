@@ -77,10 +77,14 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Artifact GitHub Action
+    - name: Upload Artifact cplot.so
       uses: actions/upload-artifact@latest
       with: 
         name: cplot.so
         path: ${{ steps.strings.outputs.build-output-dir }}
+    
+    - name: Upload Artifact cplotter
+      uses: actions/upload-artifact@latest
+      with: 
         name: cplotter
         path: ${{ steps.strings.outputs.build-output-dir }}
