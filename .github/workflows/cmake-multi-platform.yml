@@ -74,10 +74,10 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Artifact cplot.so
+    - name: Upload Artifact libcplot.so
       uses: actions/upload-artifact@v2
       with: 
-        name: cplot.so
+        name: libcplot.so
         path: ${{ steps.strings.outputs.build-output-dir }}
     
     - name: Upload Artifact cplotter
@@ -86,10 +86,10 @@ jobs:
         name: cplotter
         path: ${{ steps.strings.outputs.build-output-dir }}
     
-    - name: Download cplot.so from build
+    - name: Download libcplot.so from build
       uses: actions/download-artifact@v2
       with:
-        name: cplot.so
+        name: libcplot.so
 
     - name: Download cplotter from build
       uses: actions/download-artifact@v2
@@ -99,15 +99,15 @@ jobs:
     - name: Display structure of downloaded files
       run: ls -R
 
-    - name: Upload Release cplot.so
+    - name: Upload Release libcplot.so
       id: upload_release_asset
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./cplot.so
-        asset_name: cplot.so
+        asset_path: ./libcplot.so
+        asset_name: libcplot.so
         asset_content_type: application/octet-stream
     - name: Upload Release cplotter
       id: upload_release_asset_1
