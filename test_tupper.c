@@ -1,34 +1,26 @@
+
+
 #include <stdio.h>
 #include <cplot.h>
 // #include <setters.h>
 #define PI 3.1415926
 
 void init_cplot() {
+    number_t k = eval_value(0, 0, "960939379918958884971672962127852754715004339660129306651505519271702802395266424689642842174350718121267153782770623355993237280874144307891325963941337723487857735749823926629715517173716995165232890538221612403238855866184013235585136048828693337902491454229288667081096184496091705183454067827731551705405381627380967602565625016981482083418783163849115590225610003652351370343874461848378737238198224849863465033159410054974700593138339226497249461751545728366702369745461014655997933798537483143786841806593422227898388722980000748404719"
+    );
     // use init_* api
-    init__y1(-1);
-    init__y2(1);
-    init_x1(-PI);
-    init_x2(PI);
-    init_deltaX(2*PI);
-    init_deltaY(2);
-    init_sy(300);
-    init_sx(300);
-}
-
-void init_cplot_by_args() {
-    // use command line args
-    char y1[] = "-1";
-    char y2[] = "1";
-    char x1[] = "-pi";
-    char x2[] = "pi";
-    char sx[] = "300";
-    char sy[] = "300";
-    char *args[] = {y1, y2, sy, x1, x2, sx, NULL};
-    init(args);
+    init__y1(k);
+    init__y2(k+17);
+    init_x1(0);
+    init_x2(107);
+    init_deltaX(107);
+    init_deltaY(17);
+    init_sy(3000);
+    init_sx(3000);
 }
 
 void set_cplot_attrs(FILE *output) {
-    set_brush_size(1); // px
+    set_brush_size(2); // px
     set_brush_color(0xffff00e0); // equivalent to 
     // set_R(0xff); set_G(0xff); set_B(0x00); set_A(0xe0);
     set_bg_color(0x000000ff); // equivalent to 
@@ -42,17 +34,16 @@ void set_cplot_attrs(FILE *output) {
     // set_logger_log_level(INFO_LOG);
     // set_x_axis(true, 0.1, 0xffffffff, 0.5); // enable x-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 0.5
     // set_y_axis(true, 0.1, 0xffffffff, 1); // enable y-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 1
-    set_max_try(100); // max try, increase it to reduce the number of nonsequence posistion， decrease to gain better performance
+    set_max_try(1000); // max try, increase it to reduce the number of nonsequence posistion， decrease to gain better performance
 }
 
 int main(int argc, char** argv) {
-    FILE *output = fopen("api.png", "wb");
+    FILE *output = fopen("tupper.png", "wb");
     init_cplot();
     // init_cplot_by_args(); // or use command line args
     set_cplot_attrs(output);
-    char expr0[] = "y=SIN(x)";
-    char expr1[] = "y=COS(x)";
-    char* plot_args[] = { expr0, expr1, NULL};
+    char expr[] = "1/2<FLOOR((FLOOR(y/17)*2^(-17*FLOOR(X)-FLOOR(y)%17))%2)";
+    char* plot_args[] = { expr, NULL};
     plot_png(plot_args);
     fclose(output);
     return 0;

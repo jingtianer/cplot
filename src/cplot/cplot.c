@@ -579,14 +579,18 @@ number_t get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *
         
         number_t dzxi = off[offi]*fabsl(zx-z0)/(scale*dx);
         max_dz = max(max_dz, fabsl(z0 - zx));
-        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) *dzx = (fabsl(*dzx)) > fabsl(dzxi) ? *dzx : dzxi;
+        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) {
+            *dzx = (fabsl(*dzx)) > fabsl(dzxi) ? *dzx : dzxi;
+        }
     }
     for (int offi = 0; offi < 2; offi++) {
         eval(-dy * (i - TOP_PADDING - off[offi]*scale) + _y2,
             dx * (j - LEFT_PADDING ) + x1, expr, &zy);
         number_t dzyi = off[offi]*fabsl(zy-z0)/(scale*dy);
-        max_dz = max(max_dz, fabsl(z0 - zy));
-        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) *dzy = (fabsl(*dzy)) > fabsl(dzyi) ? *dzy : dzyi;
+        max_dz = max(max_dz, fabsl(zy-z0));
+        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) {
+            *dzy = (fabsl(*dzy)) > fabsl(dzyi) ? *dzy : dzyi;
+        }
     }
     return max_dz;
 }
@@ -611,7 +615,7 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
         //        z_cache_ptr += expr_cnt;
         for (int j = 0; j < w + LEFT_PADDING + RIGHT_PADDING; j++) {
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
-            if(*rgba == GET_R(brush_color)) continue;
+            // if(*rgba == GET_R(brush_color)) continue;
             bool ok = false;
             number_t z0;
             number_t dzx = 0, dzy = 0;
@@ -622,7 +626,8 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                 if (!fast_mode) {
                     eval(-dy * (i - TOP_PADDING) + _y2,
                         dx * (j - LEFT_PADDING) + x1, *expr, &z0);
-                    accu = min(max(dx, dy), get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, 1));
+                    number_t max_dz = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, 1);
+                    accu = min(max(dx, dy), max_dz);
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
                     dx * (j - LEFT_PADDING) + x1, *expr, &z0);
@@ -636,7 +641,7 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                     dzx = dzx > 0 ? -maxd : maxd;
                     dzy = dzy > 0 ? -maxd : maxd;
                     number_t max_try_time = min(max_try, maxd);
-                    for (int divx = 1; divx < max_try_time; divx++) {
+                    for (int divx = max_try_time-1; divx > 0; divx--) {
                         ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
                             dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
                         if (ok) goto draw;
