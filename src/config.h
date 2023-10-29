@@ -81,7 +81,8 @@ ERR_LOG
 
 // #define FAST_MODE
 
-
+// *****max-try*****
+#define MAX_TRY 100 // max try, increase it to reduce the number of nonsequence posistion， decrease to gain better performance
 
 // ***default values***
 // don't edit code below

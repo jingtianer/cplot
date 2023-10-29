@@ -30,6 +30,8 @@ SET_AXIS_IMPL(y);
 
 static number_t x1, x2, _y1, _y2, sy, sx;
 static number_t deltaX, deltaY;
+static number_t max_try = 100;
+
 
 static unsigned int brush_size = 0;
 static unsigned int bg_color = 0xFFFFFFFF;
@@ -40,10 +42,13 @@ void enable_fastmode(bool enable) {
     fast_mode = enable;
     logger(DEBUG_LOG, "enable fast mode = %s", (enable ? "true" : "false"));
 }
+
 #define SETImpl(x, type, formatter) SET(x, type) { \
     x = n; \
     logger(DEBUG_LOG, "set " #x " = " formatter, x); \
 }
+
+SETImpl(max_try, number_t, "%Lf");
 
 #define SET_R(color, val) ((color) |= (val) << (3 << 3))
 #define SET_G(color, val) ((color) |= (val) << (2 << 3))
@@ -544,6 +549,47 @@ void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius, un
     }
 }
 
+bool static drawable(unsigned char* rgba, int i, int j, int w, int h, int radius, unsigned int color) {
+    for (int y = max(-radius, -i); y <= min(radius, h - i - 1); y++) {
+        for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
+            if (sqrt(x * x + y * y) > radius) continue;
+            unsigned char* p = rgba + 4 * w * (i + y) + 4 * (j + x);
+            if(
+                *p++ == GET_R(color) &&
+                *p++ == GET_G(color) &&
+                *p++ == GET_B(color) &&
+                *p++ == GET_A(color)) {
+                    return false;
+                }
+        }
+    }
+    return true;
+}
+
+number_t get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr, number_t z0, number_t *dzy, number_t *dzx, number_t scale) {
+    if(!dzx || !dzy) {
+        logger(ERR_LOG, "get_slop, null");
+    }
+    int off[] = { 1, -1, -1, 1, 1 };
+    number_t max_dz = 0, zx, zy;
+    *dzx = *dzy = 0;
+    for (int offi = 0; offi < 2; offi++) {
+        eval(-dy * (i - TOP_PADDING) + _y2,
+            dx * (j - LEFT_PADDING - off[offi]*scale) + x1, expr, &zx);
+        
+        number_t dzxi = off[offi]*fabsl(zx-z0)/(scale*dx);
+        max_dz = max(max_dz, fabsl(z0 - zx));
+        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) *dzx = (fabsl(*dzx)) > fabsl(dzxi) ? *dzx : dzxi;
+    }
+    for (int offi = 0; offi < 2; offi++) {
+        eval(-dy * (i - TOP_PADDING - off[offi]*scale) + _y2,
+            dx * (j - LEFT_PADDING ) + x1, expr, &zy);
+        number_t dzyi = off[offi]*fabsl(zy-z0)/(scale*dy);
+        max_dz = max(max_dz, fabsl(z0 - zy));
+        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) *dzy = (fabsl(*dzy)) > fabsl(dzyi) ? *dzy : dzyi;
+    }
+    return max_dz;
+}
 void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     //    int expr_cnt = 0;
     //    for(char **expr = argv; *expr; expr++) expr_cnt++;
@@ -565,8 +611,9 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
         //        z_cache_ptr += expr_cnt;
         for (int j = 0; j < w + LEFT_PADDING + RIGHT_PADDING; j++) {
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
+            if(*rgba == GET_R(brush_color)) continue;
             bool ok = false;
-            number_t z0, zx, zy;
+            number_t z0;
             number_t dzx = 0, dzy = 0;
             //            number_t *zptr = z_cache_ptr;
             //            z_cache_ptr += expr_cnt;
@@ -575,25 +622,7 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                 if (!fast_mode) {
                     eval(-dy * (i - TOP_PADDING) + _y2,
                         dx * (j - LEFT_PADDING) + x1, *expr, &z0);
-                    int off[] = { 1, -1, -1, 1, 1 };
-                    accu = 0;
-                    for (int offi = 0; offi < 2; offi++) {
-                        //                    zx = *(zptr + off[offi]*expr_cnt);
-                        eval(-dy * (i - TOP_PADDING) + _y2,
-                            dx * (j - LEFT_PADDING - off[offi]) + x1, *expr, &zx);
-                        
-                        accu = max(accu, fabsl(z0 - zx));
-                        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) dzx = off[offi]*(zx - z0) / dx;;
-                    }
-                    for (int offi = 0; offi < 2; offi++) {
-                        //                    zx = *(zptr + off[offi]*expr_cnt);
-                        eval(-dy * (i - TOP_PADDING - off[offi]) + _y2,
-                            dx * (j - LEFT_PADDING ) + x1, *expr, &zy);
-                        
-                        accu = max(accu, fabsl(z0 - zy));
-                        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) dzy = off[offi]*(zy - z0) / dy;;
-                    }
-                    accu = min(accu, max(dx, dy));
+                    accu = min(max(dx, dy), get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, 1));
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
                     dx * (j - LEFT_PADDING) + x1, *expr, &z0);
@@ -601,13 +630,13 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                 if (!fast_mode) {
                     // if (fabsl(z0) > max(dx, dy)) continue;
                     logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
-                    number_t maxd = max(fabsl(dzx), fabsl(dzy));
-                    if(dzx == 0 || dzy == 0) continue;
-                    dzx = dzx > 0 ? maxd : -maxd;
-                    dzy = dzy > 0 ? maxd : -maxd;
-                    // int maxd_try_time = powl(10, 2*atanl(maxd/tan(7/16.0*M_PI))/M_PI_2)-1;
-                    int maxd_try_time = min(100, maxd); // todo: find a function max(y)=+inf, and efficient
-                    for (int divx = 1; divx < maxd_try_time; divx++) {
+                    number_t maxd;
+                    maxd = max(fabsl(dzx), fabsl(dzy));
+                    if(maxd <= 0) continue;
+                    dzx = dzx > 0 ? -maxd : maxd;
+                    dzy = dzy > 0 ? -maxd : maxd;
+                    number_t max_try_time = min(max_try, maxd);
+                    for (int divx = 1; divx < max_try_time; divx++) {
                         ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
                             dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
                         if (ok) goto draw;

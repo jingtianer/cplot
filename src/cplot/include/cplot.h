@@ -19,7 +19,7 @@ INIT(sy);
 INIT(sx);
 INIT(deltaX);
 INIT(deltaY);
-
+SET(max_try, number_t);
 SET(brush_size, u_int32_t);
 SET(output_file, FILE*);
 SET(R, u_int8_t);

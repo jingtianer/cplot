@@ -35,8 +35,10 @@ void set_cplot_attrs(FILE *output) {
 int main(int argc, char** argv) {
     // init_cplot_by_args(); // or use command line args
     char fname[1280] = {0};
+    setbuf(stdout, NULL);
     for(int i = 0; i < 100; i++) {
         int n = snprintf(fname, 1280, "slop_%d.png", i);
+        printf("%s, slop=%Lf\n", fname, 1/(atanl(i+1) - atanl(i)));
         FILE *output = fopen(fname, "wb");
         set_output_file(output);
         init_cplot(i);

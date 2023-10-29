@@ -42,6 +42,7 @@ void set_cplot_attrs(FILE *output) {
     // set_logger_log_level(INFO_LOG);
     set_x_axis(true, 0.1, 0xffffffff, 0.5); // enable x-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 0.5
     set_y_axis(true, 0.1, 0xffffffff, 1); // enable y-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 1
+    set_max_try(100); // max try, increase it to reduce the number of nonsequence posistion， decrease to gain better performance
 }
 
 int main(int argc, char** argv) {
