@@ -246,30 +246,12 @@ int main(int argc, char** argv) {
     #ifdef OUTPUT_FILE
     FILE *outfile = fopen(OUTPUT_FILE, "w");
     #else
-    FILE *stderr = fopen(OUTPUT_FILE, "w");
+    FILE *outfile = stdout;
     #endif
-    INIT(argv + 1);
-    accu = max(sy, sx);
-    for (number_t i = _y2; i >= _y1; ) {
-        for (number_t j = x1; j <= x2; ) {
-            logger(DEBUG_LOG, "x = %Le, y = %Le", j, i);
-            bool ok = false;
-            for (char** expr = argv + 7; *expr; expr++) {
-                ok = eval(i, j, *expr, NULL);
-                if (ok) {
-                    break;
-                }
-            }
-            if (ok) {
-                fprintf(outfile, "%c", INNER_CHAR);
-            } else {
-                fprintf(outfile, "%c", OUTER_CHAR);
-            }
-            j += sx;
-        }
-        printf("\n");
-        i -= sy;
-    }
+    init(argv + 1);
+    set_inner_char(INNER_CHAR);
+    set_outer_char(OUTER_CHAR);
+    plot_console(argv+7);
     #ifdef OUTPUT_FILE
     fclose(outfile);
     #endif

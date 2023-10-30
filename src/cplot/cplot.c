@@ -33,7 +33,7 @@ static number_t deltaX, deltaY;
 static number_t max_try = 100;
 
 
-static unsigned int brush_size = 0;
+static int brush_size = 0;
 static unsigned int bg_color = 0xFFFFFFFF;
 static unsigned int brush_color = 0x000000FF;
 static bool fast_mode = false;
@@ -54,12 +54,12 @@ SETImpl(max_try, number_t, "%Lf");
 #define SET_G(color, val) ((color) |= (val) << (2 << 3))
 #define SET_B(color, val) ((color) |= (val) << (1 << 3))
 #define SET_A(color, val) ((color) |= (val) << (0 << 3))
-#define GET_R(color) (color >> (3 << 3)) & 0xff
-#define GET_G(color) (color >> (2 << 3)) & 0xff
-#define GET_B(color) (color >> (1 << 3)) & 0xff
-#define GET_A(color) (color >> (0 << 3)) & 0xff
+#define GET_R(color) ((color >> (3 << 3)) & 0xff)
+#define GET_G(color) ((color >> (2 << 3)) & 0xff)
+#define GET_B(color) ((color >> (1 << 3)) & 0xff)
+#define GET_A(color) ((color >> (0 << 3)) & 0xff)
 #define SETCOLORImpl(x, writeto, color) SET(x, unsigned char) { SET_##color(writeto, n); logger(DEBUG_LOG, "set " #x " = %x", n); }
-SETImpl(brush_size, u_int32_t, "%u");
+SETImpl(brush_size, int, "%d");
 SETImpl(output_file, FILE*, "%p");
 SETCOLORImpl(R, brush_color, R)
 SETCOLORImpl(G, brush_color, G)
@@ -210,6 +210,8 @@ int static len_strncmp(const char* a, const char* b) {
 }
 
 number_t eval_value(number_t y, number_t x, const char* expr) {
+    logger(DEBUG_LOG, "eval_value, expr = %s\n", expr);
+
     size_t len = strlen(expr);
     size_t i = 0;
     stack_ptr = 0;
@@ -254,11 +256,11 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
                 number_t(*op_func)(number_t);
                 switch (op) {
                 case op_acos:
-                    if (n > 1 || n < -1) return DBL_MAX;
+                    if (n > 1 || n < -1) return 0.0/0.0;
                     op_func = acosl;
                     break;
                 case op_asin:
-                    if (n > 1 || n < -1) return DBL_MAX;
+                    if (n > 1 || n < -1) return 0.0/0.0;
                     op_func = asinl;
                     break;
                 case op_atan:
@@ -286,11 +288,11 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
                     op_func = expl;
                     break;
                 case op_log:
-                    if (n < 0) return DBL_MAX;
+                    if (n < 0) return 0.0/0.0;
                     op_func = logl;
                     break;
                 case op_sqrt:
-                    if (n < 0) return DBL_MAX;
+                    if (n < 0) return 0.0/0.0;
                     op_func = sqrtl;
                     break;
                 case op_fabs:
@@ -499,14 +501,16 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
     //    number_t zi = LDBL_MIN;
     while ((end = strchr(start, ',')) != NULL) {
         *end = 0;
-        if (!eval_cmp(y, x, start, z)) {
+        if (!eval_cmp(y, x, start, z) || fpclassify(*z) == FP_NAN) {
             ret = false;
             break;
         }
         start = end + 1;
     }
-    if ((ret) && !eval_cmp(y, x, start, z)) {
-        ret = false;
+    if(ret) {
+        if (!eval_cmp(y, x, start, z) || fpclassify(*z) == FP_NAN) {
+            ret = false;
+        }
     }
     free(expr);
     return ret;
@@ -566,33 +570,35 @@ bool static drawable(unsigned char* rgba, int i, int j, int w, int h, int radius
     return true;
 }
 
-number_t get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr, number_t z0, number_t *dzy, number_t *dzx, number_t scale) {
-    if(!dzx || !dzy) {
+bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr, number_t z0, number_t *dzy, number_t *dzx, number_t *max_dz) {
+    if(!dzx || !dzy || !max_dz) {
         logger(ERR_LOG, "get_slop, null");
     }
+    *max_dz = 0;
     int off[] = { 1, -1, -1, 1, 1 };
-    number_t max_dz = 0, zx, zy;
+    number_t zx, zy;
     *dzx = *dzy = 0;
+    bool ok = false;
     for (int offi = 0; offi < 2; offi++) {
         eval(-dy * (i - TOP_PADDING) + _y2,
-            dx * (j - LEFT_PADDING - off[offi]*scale) + x1, expr, &zx);
+            dx * (j - LEFT_PADDING - off[offi]) + x1, expr, &zx);
         
-        number_t dzxi = off[offi]*fabsl(zx-z0)/(scale*dx);
-        max_dz = max(max_dz, fabsl(z0 - zx));
-        if((z0 > 0 && (zx - z0) < 0) || (z0 < 0 && (zx - z0) > 0)) {
-            *dzx = (fabsl(*dzx)) > fabsl(dzxi) ? *dzx : dzxi;
+        number_t dzxi = off[offi]*fabsl(zx-z0)/(dx);
+        *max_dz = max(*max_dz, fabsl(z0 - zx));
+        if((z0 > 0 && zx < 0) || (z0 < 0 && zx> 0)) {
+            ok = (fpclassify(z0) != FP_NAN && fpclassify(zx) != FP_NAN);
         }
     }
     for (int offi = 0; offi < 2; offi++) {
-        eval(-dy * (i - TOP_PADDING - off[offi]*scale) + _y2,
+        eval(-dy * (i - TOP_PADDING - off[offi]) + _y2,
             dx * (j - LEFT_PADDING ) + x1, expr, &zy);
-        number_t dzyi = off[offi]*fabsl(zy-z0)/(scale*dy);
-        max_dz = max(max_dz, fabsl(zy-z0));
-        if((z0 > 0 && (zy - z0) < 0) || (z0 < 0 && (zy - z0) > 0)) {
-            *dzy = (fabsl(*dzy)) > fabsl(dzyi) ? *dzy : dzyi;
+        number_t dzyi = off[offi]*fabsl(zy-z0)/(dy);
+        *max_dz = max(*max_dz, fabsl(zy-z0));
+        if((z0 > 0 && zy < 0) || (z0 < 0 && zy > 0)) {
+            ok = (fpclassify(z0) != FP_NAN && fpclassify(zy) != FP_NAN);
         }
     }
-    return max_dz;
+    return ok;
 }
 void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     //    int expr_cnt = 0;
@@ -617,36 +623,24 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
             logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
             // if(*rgba == GET_R(brush_color)) continue;
             bool ok = false;
-            number_t z0;
+            number_t z0, max_dz;
             number_t dzx = 0, dzy = 0;
             //            number_t *zptr = z_cache_ptr;
             //            z_cache_ptr += expr_cnt;
             for (char** expr = argv; *expr; expr++) {
                 //                z0 = *zptr++;
                 if (!fast_mode) {
-                    eval(-dy * (i - TOP_PADDING) + _y2,
-                        dx * (j - LEFT_PADDING) + x1, *expr, &z0);
-                    number_t max_dz = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, 1);
-                    accu = min(max(dx, dy), max_dz);
+                    eval(-dy * (i - TOP_PADDING + dzy) + _y2,
+                         dx * (j - LEFT_PADDING + dzx) + x1, *expr, &z0);
+                    if(fpclassify(z0) == FP_NAN) continue;
+                    ok = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, &max_dz);
+                    if(ok) goto draw;
+                    if(fpclassify(max_dz) == FP_NAN) continue;
+                    accu = min(max(dy, dx), max_dz);
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
-                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                          dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                 if (ok) goto draw;
-                if (!fast_mode) {
-                    // if (fabsl(z0) > max(dx, dy)) continue;
-                    logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
-                    number_t maxd;
-                    maxd = max(fabsl(dzx), fabsl(dzy));
-                    if(maxd <= 0) continue;
-                    dzx = dzx > 0 ? -maxd : maxd;
-                    dzy = dzy > 0 ? -maxd : maxd;
-                    number_t max_try_time = min(max_try, maxd);
-                    for (int divx = max_try_time-1; divx > 0; divx--) {
-                        ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
-                            dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
-                        if (ok) goto draw;
-                    }
-                }
             }
         draw:
             if (ok) {
@@ -717,4 +711,35 @@ void plot_png(char** argv) {
     );
     free(rgba);
     //    free(z_cache);
+}
+
+char inner_char = '+', outer_char = ' ';
+
+SETImpl(inner_char, char, "%c")
+SETImpl(outer_char, char, "%c")
+void plot_console(char **argv) {
+    if(output_file == NULL) {
+        output_file = stdout;
+    }
+    accu = max(sy, sx);
+    for (number_t i = _y2; i >= _y1; ) {
+        for (number_t j = x1; j <= x2; ) {
+            logger(DEBUG_LOG, "x = %Le, y = %Le", j, i);
+            bool ok = false;
+            for (char** expr = argv; *expr; expr++) {
+                ok = eval(i, j, *expr, NULL);
+                if (ok) {
+                    break;
+                }
+            }
+            if (ok) {
+                fprintf(output_file, "%c", inner_char);
+            } else {
+                fprintf(output_file, "%c", outer_char);
+            }
+            j += sx;
+        }
+        printf("\n");
+        i -= sy;
+    }
 }
