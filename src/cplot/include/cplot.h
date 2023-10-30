@@ -50,6 +50,7 @@ SET(TOP_PADDING, int);
 SET(END_PADDING, int);
 void enable_fastmode(bool enable);
 
+SET(continuous_only, bool);
 
 SET_AXIS(x);
 SET_AXIS(y);

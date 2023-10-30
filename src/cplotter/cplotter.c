@@ -202,6 +202,11 @@ int main(int argc, char** argv) {
     set_END_MARGIN(END_MARGIN);
     set_END_PADDING(END_PADDING);
     set_logger_log_level(LOG_LEVEL);
+    #ifdef CONTINUOUS_ONLY
+    set_continuous_only(true);
+    #else
+    set_continuous_only(false);
+    #endif
     set_max_try(MAX_TRY);
     #ifdef ENABLE_X_AXIS
     set_x_axis(true, X_SCALE_LENGTH, X_SCALE_COLOR, X_SCALE_INTERVAL);

@@ -17,8 +17,8 @@ target_link_libraries(cplot m)
 set_target_properties(cplot PROPERTIES PUBLIC_HEADER "${PUB_INCLUDE}")
 set_target_properties(cplot PROPERTIES PRIVATE_HEADER "${PRI_INCLUDE}")
 
-add_executable(cplotter ${SRC_DIR}/cplotter/cplotter.c ${SRC_FILES})
-target_link_libraries(cplotter cplot)
+add_executable(cplotter ${SRC_DIR}/cplotter/cplotter.c ${SRC_DIR}/cplot/cplot.c ${SRC_FILES})
+target_link_libraries(cplotter m)
 set_target_properties(cplotter PROPERTIES PUBLIC_HEADER "${PUB_INCLUDE}")
 set_target_properties(cplotter PROPERTIES PRIVATE_HEADER "${PRI_INCLUDE}")
 

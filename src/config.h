@@ -2,8 +2,8 @@
 #define _CONFIG_H_
 
 // ***examples***
- #define EXEC_EXAMPLES // execute examples
- #define OPEN_EXAMPLES // open the examples
+//  #define EXEC_EXAMPLES // execute examples
+//  #define OPEN_EXAMPLES // open the examples
 
 
 
@@ -83,6 +83,10 @@ ERR_LOG
 
 // *****max-try*****
 #define MAX_TRY 80 // max try, increase it to reduce the number of nonsequence posistion， decrease to gain better performance
+
+// *****continuous only***** //draw continuous function only, better performance
+// #define CONTINUOUS_ONLY
+
 
 // ***default values***
 // don't edit code below

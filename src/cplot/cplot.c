@@ -501,14 +501,14 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
     //    number_t zi = LDBL_MIN;
     while ((end = strchr(start, ',')) != NULL) {
         *end = 0;
-        if (!eval_cmp(y, x, start, z) || fpclassify(*z) == FP_NAN) {
+        if (!eval_cmp(y, x, start, z) || (z && fpclassify(*z) == FP_NAN)) {
             ret = false;
             break;
         }
         start = end + 1;
     }
     if(ret) {
-        if (!eval_cmp(y, x, start, z) || fpclassify(*z) == FP_NAN) {
+        if (!eval_cmp(y, x, start, z) || (z && fpclassify(*z) == FP_NAN)) {
             ret = false;
         }
     }
@@ -569,7 +569,8 @@ bool static drawable(unsigned char* rgba, int i, int j, int w, int h, int radius
     }
     return true;
 }
-
+bool continuous_only = false;
+SETImpl(continuous_only, bool, "%d")
 bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr, number_t z0, number_t *dzy, number_t *dzx, number_t *max_dz) {
     if(!dzx || !dzy || !max_dz) {
         logger(ERR_LOG, "get_slop, null");
@@ -579,7 +580,7 @@ bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr
     number_t zx, zy;
     *dzx = *dzy = 0;
     bool ok = false;
-    for (int offi = 0; offi < 2; offi++) {
+    for (int offi = 0; offi < (continuous_only ? 1 : 1); offi++) {
         eval(-dy * (i - TOP_PADDING) + _y2,
             dx * (j - LEFT_PADDING - off[offi]) + x1, expr, &zx);
         
@@ -588,14 +589,20 @@ bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr
         if((z0 > 0 && zx < 0) || (z0 < 0 && zx> 0)) {
             ok = (fpclassify(z0) != FP_NAN && fpclassify(zx) != FP_NAN);
         }
+        if((z0 > 0 && z0 > zx) || (z0 < 0 && z0 < zx)) {
+            *dzx = fabsl(*dzx) > fabsl(dzxi) ? *dzx : dzxi;
+        }
     }
-    for (int offi = 0; offi < 2; offi++) {
+    for (int offi = 0; offi < (continuous_only ? 1 : 1); offi++) {
         eval(-dy * (i - TOP_PADDING - off[offi]) + _y2,
             dx * (j - LEFT_PADDING ) + x1, expr, &zy);
         number_t dzyi = off[offi]*fabsl(zy-z0)/(dy);
         *max_dz = max(*max_dz, fabsl(zy-z0));
         if((z0 > 0 && zy < 0) || (z0 < 0 && zy > 0)) {
             ok = (fpclassify(z0) != FP_NAN && fpclassify(zy) != FP_NAN);
+        }
+        if((z0 > 0 && z0 > zy) || (z0 < 0 && z0 < zy)) {
+            *dzy = fabsl(*dzy) > fabsl(dzyi) ? *dzy : dzyi;
         }
     }
     return ok;
@@ -630,17 +637,30 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
             for (char** expr = argv; *expr; expr++) {
                 //                z0 = *zptr++;
                 if (!fast_mode) {
-                    eval(-dy * (i - TOP_PADDING + dzy) + _y2,
-                         dx * (j - LEFT_PADDING + dzx) + x1, *expr, &z0);
+                    eval(-dy * (i - TOP_PADDING) + _y2,
+                        dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                     if(fpclassify(z0) == FP_NAN) continue;
-                    ok = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, &max_dz);
+                    ok = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, &max_dz) && continuous_only;
                     if(ok) goto draw;
                     if(fpclassify(max_dz) == FP_NAN) continue;
-                    accu = min(max(dy, dx), max_dz);
+                    accu = min(max(dx, dy), max_dz);
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
-                          dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
                 if (ok) goto draw;
+                if (!fast_mode && !continuous_only) {
+                    logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
+                    number_t maxd = max(fabsl(dzx), fabsl(dzy));
+                    if(maxd <= 0) continue;
+                    dzx = dzx > 0 ? -maxd : maxd;
+                    dzy = dzy > 0 ? -maxd : maxd;
+                    int max_try_time =min(max_try, maxd);
+                    for (int divx = max_try_time-1; divx > 0; divx--) {
+                        ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
+                            dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
+                        if (ok) goto draw;
+                    }
+                }
             }
         draw:
             if (ok) {

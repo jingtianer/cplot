@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <cplot.h>
-// #include <setters.h>
 #define PI 3.1415926
 
 void init_cplot() {
@@ -39,6 +38,7 @@ void set_cplot_attrs(FILE *output) {
     set_padding(10); // equivalent to 
     //set_LEFT_PADDING(10); set_RIGHT_PADDING(10); set_TOP_PADDING(10); set_END_PADDING(10);
     set_output_file(output);
+    set_continuous_only(true); // draw continuous function only, better performance
     // set_logger_log_level(INFO_LOG);
     // set_x_axis(true, 0.1, 0xffffffff, 0.5); // enable x-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 0.5
     // set_y_axis(true, 0.1, 0xffffffff, 1); // enable y-axis, len of scale is 0.1, color is 0xffffffff, interval of scale is 1
