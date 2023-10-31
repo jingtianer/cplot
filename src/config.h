@@ -69,9 +69,9 @@
 
 // *****debug levels*****
 /*
-DEBUG_LOG 
-INFO_LOG 
-ERR_LOG 
+DEBUG_LOG
+INFO_LOG
+ERR_LOG
 */
 #ifndef LOG_LEVEL
 #define LOG_LEVEL INFO_LOG // set log level

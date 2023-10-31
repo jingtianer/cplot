@@ -226,6 +226,7 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
             break;
         case 'x':
         case 'X':
+        case 't':
             PUSH(stack, x);
             break;
         case 'y':
@@ -256,11 +257,11 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
                 number_t(*op_func)(number_t);
                 switch (op) {
                 case op_acos:
-                    if (n > 1 || n < -1) return 0.0/0.0;
+                    if (n > 1 || n < -1) return 0.0 / 0.0;
                     op_func = acosl;
                     break;
                 case op_asin:
-                    if (n > 1 || n < -1) return 0.0/0.0;
+                    if (n > 1 || n < -1) return 0.0 / 0.0;
                     op_func = asinl;
                     break;
                 case op_atan:
@@ -288,11 +289,11 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
                     op_func = expl;
                     break;
                 case op_log:
-                    if (n < 0) return 0.0/0.0;
+                    if (n < 0) return 0.0 / 0.0;
                     op_func = logl;
                     break;
                 case op_sqrt:
-                    if (n < 0) return 0.0/0.0;
+                    if (n < 0) return 0.0 / 0.0;
                     op_func = sqrtl;
                     break;
                 case op_fabs:
@@ -507,7 +508,7 @@ bool eval(number_t y, number_t x, const char* _expr, number_t* z) {
         }
         start = end + 1;
     }
-    if(ret) {
+    if (ret) {
         if (!eval_cmp(y, x, start, z) || (z && fpclassify(*z) == FP_NAN)) {
             ret = false;
         }
@@ -540,7 +541,7 @@ INIT_IMPL(deltaY)
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
-void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius, unsigned int color) {
+    void static draw(unsigned char* rgba, int i, int j, int w, int h, int radius, unsigned int color) {
     for (int y = max(-radius, -i); y <= min(radius, h - i - 1); y++) {
         for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
             if (sqrt(x * x + y * y) > radius) continue;
@@ -558,21 +559,21 @@ bool static drawable(unsigned char* rgba, int i, int j, int w, int h, int radius
         for (int x = max(-radius, -j); x <= min(radius, w - j - 1); x++) {
             if (sqrt(x * x + y * y) > radius) continue;
             unsigned char* p = rgba + 4 * w * (i + y) + 4 * (j + x);
-            if(
+            if (
                 *p++ == GET_R(color) &&
                 *p++ == GET_G(color) &&
                 *p++ == GET_B(color) &&
                 *p++ == GET_A(color)) {
-                    return false;
-                }
+                return false;
+            }
         }
     }
     return true;
 }
 bool continuous_only = false;
 SETImpl(continuous_only, bool, "%d")
-bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr, number_t z0, number_t *dzy, number_t *dzx, number_t *max_dz) {
-    if(!dzx || !dzy || !max_dz) {
+bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char* expr, number_t z0, number_t* dzy, number_t* dzx, number_t* max_dz) {
+    if (!dzx || !dzy || !max_dz) {
         logger(ERR_LOG, "get_slop, null");
     }
     *max_dz = 0;
@@ -583,31 +584,31 @@ bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char *expr
     for (int offi = 0; offi < (continuous_only ? 1 : 1); offi++) {
         eval(-dy * (i - TOP_PADDING) + _y2,
             dx * (j - LEFT_PADDING - off[offi]) + x1, expr, &zx);
-        
-        number_t dzxi = off[offi]*fabsl(zx-z0)/(dx);
+
+        number_t dzxi = off[offi] * fabsl(zx - z0) / (dx);
         *max_dz = max(*max_dz, fabsl(z0 - zx));
-        if((z0 > 0 && zx < 0) || (z0 < 0 && zx> 0)) {
+        if ((z0 > 0 && zx < 0) || (z0 < 0 && zx> 0)) {
             ok = (fpclassify(z0) != FP_NAN && fpclassify(zx) != FP_NAN);
         }
-        if((z0 > 0 && z0 > zx) || (z0 < 0 && z0 < zx)) {
+        if ((z0 > 0 && z0 > zx) || (z0 < 0 && z0 < zx)) {
             *dzx = fabsl(*dzx) > fabsl(dzxi) ? *dzx : dzxi;
         }
     }
     for (int offi = 0; offi < (continuous_only ? 1 : 1); offi++) {
         eval(-dy * (i - TOP_PADDING - off[offi]) + _y2,
-            dx * (j - LEFT_PADDING ) + x1, expr, &zy);
-        number_t dzyi = off[offi]*fabsl(zy-z0)/(dy);
-        *max_dz = max(*max_dz, fabsl(zy-z0));
-        if((z0 > 0 && zy < 0) || (z0 < 0 && zy > 0)) {
+            dx * (j - LEFT_PADDING) + x1, expr, &zy);
+        number_t dzyi = off[offi] * fabsl(zy - z0) / (dy);
+        *max_dz = max(*max_dz, fabsl(zy - z0));
+        if ((z0 > 0 && zy < 0) || (z0 < 0 && zy > 0)) {
             ok = (fpclassify(z0) != FP_NAN && fpclassify(zy) != FP_NAN);
         }
-        if((z0 > 0 && z0 > zy) || (z0 < 0 && z0 < zy)) {
+        if ((z0 > 0 && z0 > zy) || (z0 < 0 && z0 < zy)) {
             *dzy = fabsl(*dzy) > fabsl(dzyi) ? *dzy : dzyi;
         }
     }
     return ok;
 }
-void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
+void plot_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     //    int expr_cnt = 0;
     //    for(char **expr = argv; *expr; expr++) expr_cnt++;
     //    number_t *z_cache = malloc(
@@ -639,10 +640,10 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                 if (!fast_mode) {
                     eval(-dy * (i - TOP_PADDING) + _y2,
                         dx * (j - LEFT_PADDING) + x1, *expr, &z0);
-                    if(fpclassify(z0) == FP_NAN) continue;
+                    if (fpclassify(z0) == FP_NAN) continue;
                     ok = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, &max_dz) && continuous_only;
-                    if(ok) goto draw;
-                    if(fpclassify(max_dz) == FP_NAN) continue;
+                    if (ok) goto draw;
+                    if (fpclassify(max_dz) == FP_NAN) continue;
                     accu = min(max(dx, dy), max_dz);
                 }
                 ok = eval(-dy * (i - TOP_PADDING) + _y2,
@@ -651,11 +652,11 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
                 if (!fast_mode && !continuous_only) {
                     logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
                     number_t maxd = max(fabsl(dzx), fabsl(dzy));
-                    if(maxd <= 0) continue;
+                    if (maxd <= 0) continue;
                     dzx = dzx > 0 ? -maxd : maxd;
                     dzy = dzy > 0 ? -maxd : maxd;
-                    int max_try_time =min(max_try, maxd);
-                    for (int divx = max_try_time-1; divx > 0; divx--) {
+                    int max_try_time = min(max_try, maxd);
+                    for (int divx = max_try_time - 1; divx > 0; divx--) {
                         ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
                             dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
                         if (ok) goto draw;
@@ -680,65 +681,13 @@ void plot_buffer(char** argv, unsigned char *rgba, int h, int w, number_t dx, nu
     //    free(z_cache);
 }
 
-void plot_png(char** argv) {
-    //    int expr_cnt = 0;
-    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
-    int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
-    //    int h = ceill(sy);
-    //    int w = ceill(sx);
-    number_t dx = deltaX / w;
-    number_t dy = deltaY / h;
-    logger(DEBUG_LOG, "x = %d, y = %d", h, w);
-    unsigned char* rgba = malloc(
-        sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
-    if (rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
-
-    unsigned char* p = rgba;
-    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
-        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING); i++) {
-        *p++ = GET_R(bg_color);
-        *p++ = GET_G(bg_color);
-        *p++ = GET_B(bg_color);
-        *p++ = GET_A(bg_color);
-    }
-    plot_buffer(argv, rgba, h, w, dx, dy, brush_color);
-    if(plot_x_axis) {
-        char x_axis[] = "y=0";
-        char *x_scale = NULL;
-        alloc_sprintf(&x_scale, "x=CEIL(X/%Lf)*%Lf,y>0,y<%Lf", x_interval, x_interval, x_scale_len);
-        char *x_axis_args[] = {x_axis, x_scale, NULL};
-        plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color);
-    }
-    if(plot_y_axis) {
-        char x_axis[] = "x=0";
-        char *x_scale = NULL;
-        alloc_sprintf(&x_scale, "y=CEIL(Y/%Lf)*%Lf,x>0,x<%Lf", y_interval, y_interval, y_scale_len);
-        char *x_axis_args[] = {x_axis, x_scale, NULL};
-        plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color);
-    }
-    if(output_file == NULL) {
-        output_file = stdout;
-    }
-    svpng(
-        output_file,
-        w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
-        h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
-        rgba,
-        1
-    );
-    free(rgba);
-    //    free(z_cache);
-}
 
 char inner_char = '+', outer_char = ' ';
 
 SETImpl(inner_char, char, "%c")
 SETImpl(outer_char, char, "%c")
-void plot_console(char **argv) {
-    if(output_file == NULL) {
+void plot_console(char** argv) {
+    if (output_file == NULL) {
         output_file = stdout;
     }
     accu = max(sy, sx);
@@ -762,4 +711,227 @@ void plot_console(char **argv) {
         printf("\n");
         i -= sy;
     }
+}
+
+number_t t1, t2, st;
+INIT_IMPL(t1)
+INIT_IMPL(t2)
+INIT_IMPL(st)
+
+void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
+    int expr_cnt = 0;
+    number_t dt = (t2 - t1) / st;
+    for (char** expr = argv; *expr; expr++) expr_cnt++;
+    if (expr_cnt % 2 != 0) logger(ERR_LOG, "plot parametric must contains even exprs");
+    number_t ymax = _y2 + TOP_PADDING * dy;
+    number_t ymin = _y1 - END_PADDING * dy;
+    number_t xmax = x2 + RIGHT_PADDING * dx;
+    number_t xmin = x1 - LEFT_PADDING * dx;
+    number_t ymid = (ymax + ymin) / 2, xmid = (xmax + xmin) / 2;
+    for (char** expr = argv; *expr;) {
+        char* expry, * exprx;
+        expry = *expr++;
+        exprx = *expr++;
+        number_t lasty = eval_value(0, t1, expry);
+        number_t lastx = eval_value(0, t1, exprx);
+        for (number_t t = t1 + dt; t <= t2; t += dt) {
+            number_t y = eval_value(0, t, expry);
+            number_t x = eval_value(0, t, exprx);
+            number_t dydt = (y - lasty) / dy, dxdt = (lastx - x) / dx;
+            lasty = y;
+            lastx = x;
+            // if (dydt == 0 || dxdt == 0) {
+            //     continue;
+            // }
+            if (y > ymax || y < ymin) continue;
+            if (x > xmax || x < xmin) continue;
+            number_t maxd = max(fabsl(dydt), fabsl(dxdt));
+            // dydt = dydt > 0 ? maxd : -maxd;
+            // dxdt = dxdt > 0 ? maxd : -maxd;
+            for (int k = 0; k <= maxd; k++) {
+                int i = ((ymid - y) / dy + k / maxd * dydt) + (h + TOP_PADDING + END_PADDING) / 2.0;
+                int j = ((x - xmid) / dx + k / maxd * dxdt) + (w + LEFT_PADDING + RIGHT_PADDING) / 2.0;
+                if (j > w + LEFT_PADDING + RIGHT_PADDING || j < 0) continue;
+                if (i > h + TOP_PADDING + TOP_PADDING || i < 0) continue;
+                draw(
+                    rgba,
+                    i + TOP_MARGIN, j + LEFT_MARGIN,
+                    w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+                    h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+                    brush_size,
+                    color
+                );
+            }
+        }
+    }
+}
+
+
+void plot_polar_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
+    int expr_cnt = 0;
+    for (char** expr = argv; *expr; expr++) expr_cnt++;
+    char** exprs = malloc(sizeof(char*) * (expr_cnt * 2 + 1));
+    for (int i = 0; i < expr_cnt * 2; i++) {
+        if (i % 2 == 0) alloc_sprintf(&exprs[i], "%s*SIN(t)", argv[i / 2]);
+        else alloc_sprintf(&exprs[i], "%s*COS(t)", argv[i / 2]);
+    }
+    exprs[expr_cnt * 2] = NULL;
+    plot_parametric_buffer(exprs, rgba, h, w, dx, dy, color);
+    for (int i = 0; i < expr_cnt * 2; i++) {
+        free(exprs[i]);
+    }
+    free(exprs);
+}
+
+void plot_function_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
+    number_t ymax = _y2 + END_PADDING * dy;
+    number_t ymin = _y1 - TOP_PADDING * dy;
+    for (char** expr = argv; *expr; expr++) {
+        number_t last_y = eval_value(0, dx * (0 - LEFT_PADDING) + x1, *argv);
+        for (int j = 1; j < w + LEFT_PADDING + RIGHT_PADDING; j++) {
+            number_t y = eval_value(0, dx * (j - LEFT_PADDING) + x1, *expr);
+            int i_start = (ymax - y) / dy;
+            int i_end = (ymax - last_y) / dy;
+            last_y = y;
+            if (y < ymin) continue;
+            if (i_start > i_end) {
+                number_t swapi = i_start;
+                i_start = i_end;
+                i_end = swapi;
+            }
+            for (int i = i_end; i >= i_start; i--) {
+                if (i < 0) break;
+                draw(
+                    rgba,
+                    i + TOP_MARGIN, j + LEFT_MARGIN,
+                    w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+                    h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+                    brush_size,
+                    color
+                );
+            }
+        }
+    }
+}
+
+typedef enum expr_type_t {
+    normal,
+    function,
+    parametric,
+    polar
+} expr_type_t;
+
+void plot_png_by_type(char** argv, expr_type_t type) {
+    //    int expr_cnt = 0;
+    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
+    int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
+    int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
+    //    int h = ceill(sy);
+    //    int w = ceill(sx);
+    number_t dx = deltaX / w;
+    number_t dy = deltaY / h;
+    logger(DEBUG_LOG, "x = %d, y = %d", h, w);
+    unsigned char* rgba = malloc(
+        sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4);
+    if (rgba == NULL) logger(ERR_LOG, "malloc rgba failed, size = %d, error: %s", sizeof(unsigned char) * (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING) * 4, strerror(errno));
+
+    unsigned char* p = rgba;
+    for (int i = 0; i < (w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING) *
+        (h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING); i++) {
+        *p++ = GET_R(bg_color);
+        *p++ = GET_G(bg_color);
+        *p++ = GET_B(bg_color);
+        *p++ = GET_A(bg_color);
+    }
+    switch (type) {
+    case normal:
+        plot_buffer(argv, rgba, h, w, dx, dy, brush_color);
+        break;
+    case parametric:
+        plot_parametric_buffer(argv, rgba, h, w, dx, dy, brush_color);
+        break;
+    case function:
+        plot_function_buffer(argv, rgba, h, w, dx, dy, brush_color);
+        break;
+    case polar:
+        plot_polar_buffer(argv, rgba, h, w, dx, dy, brush_color);
+        break;
+    default:
+        logger(ERR_LOG, "plot png by type, unreachable!");
+        break;
+    }
+    if (plot_x_axis) {
+        char x_axis[] = "y=0";
+        char* x_scale = NULL;
+        alloc_sprintf(&x_scale, "x=CEIL(X/%Lf)*%Lf,y>0,y<%Lf", x_interval, x_interval, x_scale_len);
+        char* x_axis_args[] = { x_axis, x_scale, NULL };
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color);
+    }
+    if (plot_y_axis) {
+        char x_axis[] = "x=0";
+        char* x_scale = NULL;
+        alloc_sprintf(&x_scale, "y=CEIL(Y/%Lf)*%Lf,x>0,x<%Lf", y_interval, y_interval, y_scale_len);
+        char* x_axis_args[] = { x_axis, x_scale, NULL };
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color);
+    }
+    if (output_file == NULL) {
+        output_file = stdout;
+    }
+    svpng(
+        output_file,
+        w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+        h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+        rgba,
+        1
+    );
+    free(rgba);
+    //    free(z_cache);
+}
+
+#define PLOT_Impl(x) PLOT(x) { \
+    plot_png_by_type(argv, x); \
+}
+
+PLOT_Impl(normal)
+
+PLOT_Impl(polar)
+
+PLOT_Impl(parametric)
+
+PLOT_Impl(function)
+
+void plot_png(char** argv) {
+    plot_png_by_type(argv, normal);
+}
+
+INIT_CPLOT(normal) {
+    init(argv);
+}
+
+
+void init_with_t(char** argv) {
+    _y1 = eval_value(0, 0, *argv++);
+    _y2 = eval_value(0, 0, *argv++);
+    sy = eval_value(0, 0, *argv++);
+    x1 = eval_value(0, 0, *argv++);
+    x2 = eval_value(0, 0, *argv++);
+    sx = eval_value(0, 0, *argv++);
+    t1 = eval_value(0, 0, *argv++);
+    t2 = eval_value(0, 0, *argv++);
+    st = eval_value(0, 0, *argv++);
+    deltaX = x2 - x1;
+    deltaY = _y2 - _y1;
+    logger(DEBUG_LOG, "init: %Le, %Le, %Le, %Le, %Le, %Le, %Lf, %Lf, %Lf\n", _y1, _y2, sy, x1, x2, sx, t1, t2, st);
+}
+INIT_CPLOT(polar) {
+    init_with_t(argv);
+}
+INIT_CPLOT(parametric) {
+    init_with_t(argv);
+}
+
+INIT_CPLOT(function) {
+    init(argv);
 }

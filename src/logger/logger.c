@@ -18,7 +18,7 @@ void logger(int level, const char* format, ...) {
     vsprintf(str, format, args);
     va_end(args);
     if (level == ERR_LOG) fprintf(stderr, "err_log: ");
-    else fprintf(stderr, "%s\n", str);
+    fprintf(stderr, "%s\n", str);
     free(str);
     if (level == ERR_LOG) {
         exit(1);

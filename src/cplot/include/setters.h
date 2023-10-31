@@ -12,3 +12,11 @@ error "user should not include this hearder."
 #ifndef INIT
 #define INIT(x) void init_##x(number_t n)
 #endif
+
+#ifndef PLOT
+#define PLOT(x) void plot_##x(char **argv)
+#endif
+
+#ifndef INIT_CPLOT
+#define INIT_CPLOT(x) void init_##x##_cplot(char **argv)
+#endif 
