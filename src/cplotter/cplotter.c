@@ -150,6 +150,7 @@ int main(int argc, char** argv) {
         example("%s polar \"-10\" \"10\" 300 \"-10\" \"10\" 300 0 \"2*pi\" \"300\" \"TAN(t+pi/4)\"", argv[0]);
         example("%s polar \"-1\" \"1\" 300 \"-1\" \"1\" 300 0 \"10*pi\" \"300\" \"COS(1.8*t)\"", argv[0]);
         example("%s parametric \"-1\" \"1\" 300 \"-1\" \"1\" 300 \"0*pi\" \"2*pi\" \"300\" \"SIN(t)^3\" \"COS(t)^3\"", argv[0]);
+        example("%s polar \"-1\" \"1\" 300 \"-1\" \"1\" 300 \"0*pi\" \"2*pi\" \"300\" \"TAN(4*t)\"", argv[0]);
         example("%s normal \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\"", argv[0]);
         example("%s normal \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\"", argv[0]);
         example("%s normal \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\"", argv[0]);

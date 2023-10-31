@@ -732,11 +732,15 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
         char* expry, * exprx;
         expry = *expr++;
         exprx = *expr++;
-        number_t lasty = eval_value(0, t1, expry);
-        number_t lastx = eval_value(0, t1, exprx);
+        number_t lasty;
+        number_t lastx;
+        number_t y = eval_value(0, t1, expry);
+        number_t x = eval_value(0, t1, exprx);
         for (number_t t = t1 + dt; t <= t2; t += dt) {
-            number_t y = eval_value(0, t, expry);
-            number_t x = eval_value(0, t, exprx);
+            lasty = y;
+            lastx = x;
+            y = eval_value(0, t, expry);
+            x = eval_value(0, t, exprx);
             if (fpclassify(lasty) == FP_NAN) {
                 logger(DEBUG_LOG, "lasty is Nan, y = %Lf", y);
                 lasty = eval_value(0, t1, expry);
@@ -747,13 +751,13 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
             }
             number_t dydt = (y - lasty) / dy, dxdt = (lastx - x) / dx;
             logger(DEBUG_LOG, "dydt=%Lf, dxdt=%Lf, y=%Lf, x=%Lf, t=%Lf", dydt, dxdt, y, x, t);
-            lasty = y;
-            lastx = x;
+            
+            
             // if (dydt == 0 || dxdt == 0) {
             //     continue;
             // }
-            if (y > ymax || y < ymin) continue;
-            if (x > xmax || x < xmin) continue;
+            // if (lasty > ymax || lasty < ymin) continue;
+            // if (lastx > xmax || lastx < xmin) continue;
             number_t maxd = max(fabsl(dydt), fabsl(dxdt));
             // dydt = dydt > 0 ? maxd : -maxd;
             // dxdt = dxdt > 0 ? maxd : -maxd;
@@ -762,8 +766,24 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
                 int j = ((x - xmid) / dx + k / maxd * dxdt) + (w + LEFT_PADDING + RIGHT_PADDING) / 2.0;
                 logger(DEBUG_LOG, "i=%d, j=%d, t=%Lf", i, j, t);
 
-                if (j > w + LEFT_PADDING + RIGHT_PADDING || j < 0) continue;
-                if (i > h + TOP_PADDING + TOP_PADDING || i < 0) continue;
+                if (j > w + LEFT_PADDING + RIGHT_PADDING || j < 0) break;
+                if (i > h + TOP_PADDING + TOP_PADDING || i < 0) break;
+                draw(
+                    rgba,
+                    i + TOP_MARGIN, j + LEFT_MARGIN,
+                    w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
+                    h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
+                    brush_size,
+                    color
+                );
+            }
+            for (int k = maxd; k >= 0; k--) {
+                int i = ((ymid - y) / dy + k / maxd * dydt) + (h + TOP_PADDING + END_PADDING) / 2.0;
+                int j = ((x - xmid) / dx + k / maxd * dxdt) + (w + LEFT_PADDING + RIGHT_PADDING) / 2.0;
+                logger(DEBUG_LOG, "i=%d, j=%d, t=%Lf", i, j, t);
+
+                if (j > w + LEFT_PADDING + RIGHT_PADDING || j < 0) break;
+                if (i > h + TOP_PADDING + TOP_PADDING || i < 0) break;
                 draw(
                     rgba,
                     i + TOP_MARGIN, j + LEFT_MARGIN,
