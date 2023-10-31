@@ -737,7 +737,16 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
         for (number_t t = t1 + dt; t <= t2; t += dt) {
             number_t y = eval_value(0, t, expry);
             number_t x = eval_value(0, t, exprx);
+            if (fpclassify(lasty) == FP_NAN) {
+                logger(DEBUG_LOG, "lasty is Nan, y = %Lf", y);
+                lasty = eval_value(0, t1, expry);
+            }
+            if (fpclassify(lastx) == FP_NAN) {
+                logger(DEBUG_LOG, "lastx is Nan, x = %Lf", x);
+                lastx = eval_value(0, t1, exprx);
+            }
             number_t dydt = (y - lasty) / dy, dxdt = (lastx - x) / dx;
+            logger(DEBUG_LOG, "dydt=%Lf, dxdt=%Lf, y=%Lf, x=%Lf, t=%Lf", dydt, dxdt, y, x, t);
             lasty = y;
             lastx = x;
             // if (dydt == 0 || dxdt == 0) {
@@ -748,9 +757,11 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
             number_t maxd = max(fabsl(dydt), fabsl(dxdt));
             // dydt = dydt > 0 ? maxd : -maxd;
             // dxdt = dxdt > 0 ? maxd : -maxd;
-            for (int k = 0; k <= maxd; k++) {
+            for (int k = 0; k <= (maxd); k++) {
                 int i = ((ymid - y) / dy + k / maxd * dydt) + (h + TOP_PADDING + END_PADDING) / 2.0;
                 int j = ((x - xmid) / dx + k / maxd * dxdt) + (w + LEFT_PADDING + RIGHT_PADDING) / 2.0;
+                logger(DEBUG_LOG, "i=%d, j=%d, t=%Lf", i, j, t);
+
                 if (j > w + LEFT_PADDING + RIGHT_PADDING || j < 0) continue;
                 if (i > h + TOP_PADDING + TOP_PADDING || i < 0) continue;
                 draw(

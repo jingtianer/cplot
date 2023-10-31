@@ -9,7 +9,7 @@ void init_cplot() {
     char x2[] = "1";
     char sx[] = "300";
     char t1[] = "-pi/4";
-    char t2[] = "5*pi/4";
+    char t2[] = "7*pi/4";
     char st[] = "300";
     char* args[] = { y1, y2, sy, x1, x2, sx, t1, t2, st, NULL };
     init_parametric_cplot(args);
