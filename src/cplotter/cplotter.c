@@ -54,18 +54,18 @@ int example(const char* format, ...) {
     char* output_file = strdup(OUTPUT_FILE);
 #else
     char* output_file;
-    alloc_sprintf(&output_file, "2>errs%d.log 1>out%d"
+    alloc_sprintf(&output_file, "out%d"
 #ifdef USE_PNG
         ".png"
 #endif
-        , example_cnt, example_cnt);
+        , example_cnt);
 #endif
     char* command;
-    alloc_sprintf(&command, "%s"
+    alloc_sprintf(&command, "%s 2>errs%d.log"
 #ifndef OUTPUT_FILE
-        " %s"
+        " 1>%s"
 #endif
-        , str
+        , str, example_cnt
 #ifndef OUTPUT_FILE
         , output_file
 #endif
