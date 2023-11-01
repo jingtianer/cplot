@@ -115,6 +115,7 @@ typedef enum unary_ops {
     op_exp,
     op_log,
     op_floor,
+    op_round, 
     op_sqrt,
     op_fabs,
     op_ceil
@@ -305,6 +306,9 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
                 case op_floor:
                     op_func = floorl;
                     break;
+                case op_round:
+                    op_func = roundl;
+                    break;
                 }
                 PUSH(stack, op_func(n));
             }
@@ -425,7 +429,10 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
             } else if (!len_strncmp(expr + i, "FLOOR")) {
                 PUSH(op_stack, op_floor);
                 i += 4;
-            } else {
+            } else if (!len_strncmp(expr + i, "ROUND")) {
+                PUSH(op_stack, op_round);
+                i += 4;
+            }  else {
                 logger(ERR_LOG, "Error: unknown char(%c)", expr[i]);
                 exit(1);
             }

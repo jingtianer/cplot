@@ -1,0 +1,1 @@
+max=180 && for i in `seq $max`; do cplotter polar "-1" "1" 1080 "-1*1980/1080" "1*1980/1080" 1080 0 "5*pi*$i/$max" "3000" "COS(1.8*t)" 2>errs4.log 1>polar_5/test$i.png; done

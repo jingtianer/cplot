@@ -206,6 +206,7 @@ $CC -o test_api test.c -I /usr/include/cplot/ -lcplot
 ![example-32](./examples/eg32.png)
 ![example-32](./examples/eg33.png)
 
+- more examples: [examples](./examples/)
 
 ```sh
 Usage: cplotter [normal|polar|paraametric|function] y1 y2 sy x1 x2 sx expression

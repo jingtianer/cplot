@@ -1,0 +1,1 @@
+a=8 && b=9 && max=180 && for i in `seq $max`; do cplotter parametric -1 1 1080 "-1*1920/1080" "1*1920/1080" 1080 0 "2*pi*$i/$max" 5000 "SIN($a*t)" "COS($b*t)" > lissajous_1/test$i.png; done
