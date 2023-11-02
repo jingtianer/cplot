@@ -115,7 +115,7 @@ typedef enum unary_ops {
     op_exp,
     op_log,
     op_floor,
-    op_round, 
+    op_round,
     op_sqrt,
     op_fabs,
     op_ceil
@@ -232,6 +232,7 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
             break;
         case 'y':
         case 'Y':
+        case 'r':
             PUSH(stack, y);
             break;
         case '(':
@@ -432,7 +433,7 @@ number_t eval_value(number_t y, number_t x, const char* expr) {
             } else if (!len_strncmp(expr + i, "ROUND")) {
                 PUSH(op_stack, op_round);
                 i += 4;
-            }  else {
+            } else {
                 logger(ERR_LOG, "Error: unknown char(%c)", expr[i]);
                 exit(1);
             }
@@ -615,46 +616,34 @@ bool get_slop(number_t i, number_t j, number_t dy, number_t dx, const char* expr
     }
     return ok;
 }
-void plot_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
-    //    int expr_cnt = 0;
-    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
-    //    number_t *z_cache = malloc(
-    //            sizeof(number_t) * (w + LEFT_PADDING + RIGHT_PADDING + 2) * //上下左右多算一行/列
-    //            (h + TOP_PADDING + END_PADDING + 2) * expr_cnt), *z_cache_ptr;
-    //    z_cache_ptr = z_cache;
-    //    for (int i = -1; i < h + TOP_PADDING + END_PADDING + 1; i++) {
-    //        for (int j = -1; j < w + LEFT_PADDING + RIGHT_PADDING + 1; j++) {
-    //            for(char **expr = argv; *expr; expr++, z_cache_ptr++)
-    //                eval(-dy * (i - TOP_PADDING) + _y2, dx * (j - LEFT_PADDING) + x1, *expr, z_cache_ptr, false);
-    //        }
-    //    }
+
+void plot_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color, bool is_polar) {
     unsigned char* p = rgba;
     accu = max(dx, dy);
-    //    z_cache_ptr = z_cache;
-    //    z_cache_ptr += (w + LEFT_PADDING + RIGHT_PADDING + 2) * expr_cnt;
-    for (int i = 0; i < h + TOP_PADDING + END_PADDING; i++) {
-        //        z_cache_ptr += expr_cnt;
-        for (int j = 0; j < w + LEFT_PADDING + RIGHT_PADDING; j++) {
-            logger(DEBUG_LOG, "x = %lld, y = %lld", j, i);
-            // if(*rgba == GET_R(brush_color)) continue;
+    int end_padding = is_polar ? 0 : END_PADDING;
+    int top_padding = is_polar ? 0 : TOP_PADDING;
+    int left_padding = is_polar ? 0 : LEFT_PADDING;
+    int right_padding = is_polar ? 0 : RIGHT_PADDING;
+
+    number_t ymin = _y1 - end_padding * dy, ymax = _y2 + top_padding * dy;
+    number_t xmin = x1 - left_padding * dx, xmax = x2 + right_padding * dx;
+    for (int i = 0; i < h + top_padding + end_padding; i++) {
+        for (int j = 0; j < w + left_padding + right_padding; j++) {
+            number_t y = -dy * (i - top_padding) + _y2, x = dx * (j - left_padding) + x1;
+            logger(DEBUG_LOG, "y = %Lf, x = %Lf", y, x);
             bool ok = false;
-            number_t z0, max_dz;
+            number_t z0, max_dz = LDBL_MAX;
             number_t dzx = 0, dzy = 0;
-            //            number_t *zptr = z_cache_ptr;
-            //            z_cache_ptr += expr_cnt;
             for (char** expr = argv; *expr; expr++) {
-                //                z0 = *zptr++;
                 if (!fast_mode) {
-                    eval(-dy * (i - TOP_PADDING) + _y2,
-                        dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                    eval(y, x, *expr, &z0);
                     if (fpclassify(z0) == FP_NAN) continue;
                     ok = get_slop(i, j, dy, dx, *expr, z0, &dzy, &dzx, &max_dz) && continuous_only;
                     if (ok) goto draw;
                     if (fpclassify(max_dz) == FP_NAN) continue;
                     accu = min(max(dx, dy), max_dz);
                 }
-                ok = eval(-dy * (i - TOP_PADDING) + _y2,
-                    dx * (j - LEFT_PADDING) + x1, *expr, &z0);
+                ok = eval(y, x, *expr, &z0);
                 if (ok) goto draw;
                 if (!fast_mode && !continuous_only) {
                     logger(DEBUG_LOG, "dzx = %Le, dzy = %Le", dzx, dzy);
@@ -664,17 +653,30 @@ void plot_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, nu
                     dzy = dzy > 0 ? -maxd : maxd;
                     int max_try_time = min(max_try, maxd);
                     for (int divx = max_try_time - 1; divx > 0; divx--) {
-                        ok = eval(-dy * (i - TOP_PADDING + divx / dzy) + _y2,
-                            dx * (j - LEFT_PADDING + divx / dzx) + x1, *expr, NULL);
+                        ok = eval(
+                            -dy * (i - top_padding + divx / dzy) + _y2,
+                            dx * (j - left_padding + divx / dzx) + x1, *expr, NULL);
                         if (ok) goto draw;
                     }
                 }
             }
         draw:
+
             if (ok) {
+                int draw_i, draw_j;
+                if (is_polar) {
+                    number_t polar_y = y * sinl(x);
+                    number_t polar_x = y * cosl(x);
+                    draw_i = (_y2 - polar_y) / (_y2 + _y2) * h;
+                    draw_j = (polar_x + _y2) / (_y2 + _y2) * w;
+                    logger(DEBUG_LOG, "r = %Lf, t = %Lf, y = %Lf, x = %Lf, i = %d, j = %d", y, x, polar_y, polar_x, draw_i, draw_j);
+                } else {
+                    draw_i = i;
+                    draw_j = j;
+                }
                 draw(
                     rgba,
-                    i + TOP_MARGIN, j + LEFT_MARGIN,
+                    draw_i + TOP_MARGIN + TOP_PADDING - top_padding, draw_j + LEFT_MARGIN + LEFT_PADDING - left_padding,
                     w + LEFT_MARGIN + RIGHT_MARGIN + LEFT_PADDING + RIGHT_PADDING,
                     h + TOP_MARGIN + END_MARGIN + TOP_PADDING + END_PADDING,
                     brush_size,
@@ -728,22 +730,24 @@ INIT_IMPL(st)
 void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, number_t dx, number_t dy, unsigned int color) {
     int expr_cnt = 0;
     number_t dt = (t2 - t1) / st;
-    for (char** expr = argv; *expr; expr++) expr_cnt++;
-    if (expr_cnt % 2 != 0) logger(ERR_LOG, "plot parametric must contains even exprs");
     number_t ymax = _y2 + TOP_PADDING * dy;
     number_t ymin = _y1 - END_PADDING * dy;
     number_t xmax = x2 + RIGHT_PADDING * dx;
     number_t xmin = x1 - LEFT_PADDING * dx;
     number_t ymid = (ymax + ymin) / 2, xmid = (xmax + xmin) / 2;
-    for (char** expr = argv; *expr;) {
-        char* expry, * exprx;
-        expry = *expr++;
-        exprx = *expr++;
+    for (char** expr = argv; *expr; expr++) {
+        char* common_pos = strchr(*expr, ',');
+        if (common_pos == NULL) {
+            logger(ERR_LOG, "format of parametric: \"y(t),x(t)\", invalid expr: %s", *expr);
+        }
+        *common_pos = '\0';
+        char* expry = *expr, * exprx = common_pos + 1;
         number_t lasty;
         number_t lastx;
         number_t y = eval_value(0, t1, expry);
         number_t x = eval_value(0, t1, exprx);
-        for (number_t t = t1 + dt; t <= t2; t += dt) {
+        for (int i = 0; i <= st; i++) {
+            number_t t = i * dt + t1;
             lasty = y;
             lastx = x;
             y = eval_value(0, t, expry);
@@ -758,8 +762,8 @@ void plot_parametric_buffer(char** argv, unsigned char* rgba, int h, int w, numb
             }
             number_t dydt = (y - lasty) / dy, dxdt = (lastx - x) / dx;
             logger(DEBUG_LOG, "dydt=%Lf, dxdt=%Lf, y=%Lf, x=%Lf, t=%Lf", dydt, dxdt, y, x, t);
-            
-            
+
+
             // if (dydt == 0 || dxdt == 0) {
             //     continue;
             // }
@@ -810,8 +814,7 @@ void plot_polar_buffer(char** argv, unsigned char* rgba, int h, int w, number_t 
     for (char** expr = argv; *expr; expr++) expr_cnt++;
     char** exprs = malloc(sizeof(char*) * (expr_cnt * 2 + 1));
     for (int i = 0; i < expr_cnt * 2; i++) {
-        if (i % 2 == 0) alloc_sprintf(&exprs[i], "(%s)*SIN(t)", argv[i / 2]);
-        else alloc_sprintf(&exprs[i], "(%s)*COS(t)", argv[i / 2]);
+        alloc_sprintf(&exprs[i], "(%s)*SIN(t),(%s)*COS(t)", argv[i / 2], argv[i / 2]);
     }
     exprs[expr_cnt * 2] = NULL;
     plot_parametric_buffer(exprs, rgba, h, w, dx, dy, color);
@@ -860,10 +863,27 @@ typedef enum expr_type_t {
 } expr_type_t;
 
 void plot_png_by_type(char** argv, expr_type_t type) {
-    //    int expr_cnt = 0;
-    //    for(char **expr = argv; *expr; expr++) expr_cnt++;
+    bool is_polar = false;
+    for (char** expr = argv; *expr; expr++) {
+        if (strchr(*expr, 't') != NULL || strchr(*expr, 'r') != NULL) {
+            is_polar = true;
+            break;
+        }
+        // y is r
+        // x is t
+    }
     int h = (int)ceill(sy * (deltaY > deltaX ? (deltaY / deltaX) : 1));
     int w = (int)ceill(sx * (deltaY > deltaX ? 1 : (deltaX / deltaY)));
+    if (is_polar && type == normal) {
+        // if (x2 - x1 < M_PI * 2) {
+        //     h = sy * ((sinl(x2) * sinl(x1) > 0) ? ceill(_y2 * fmaxl(fabsl(sinl(x1)), fabsl(sinl(x2)))) : fabsl(ceill(_y2 * (sinl(x2) - sinl(x1)))));
+        //     w = sx * ((cosl(x2) * cosl(x1) > 0) ? ceill(_y2 * fmaxl(fabsl(cosl(x1)), fabsl(cosl(x2)))) : fabsl(ceill(_y2 * (cosl(x2) - cosl(x1)))));
+        // } else {
+        h = 2 * sy;
+        w = 2 * sx;
+        // }
+        logger(DEBUG_LOG, "h = %d, w = %d", h, w);
+    }
     //    int h = ceill(sy);
     //    int w = ceill(sx);
     number_t dx = deltaX / w;
@@ -885,7 +905,7 @@ void plot_png_by_type(char** argv, expr_type_t type) {
     }
     switch (type) {
     case normal:
-        plot_buffer(argv, rgba, h, w, dx, dy, brush_color);
+        plot_buffer(argv, rgba, h, w, dx, dy, brush_color, is_polar);
         break;
     case parametric:
         plot_parametric_buffer(argv, rgba, h, w, dx, dy, brush_color);
@@ -905,14 +925,14 @@ void plot_png_by_type(char** argv, expr_type_t type) {
         char* x_scale = NULL;
         alloc_sprintf(&x_scale, "x=CEIL(X/%Lf)*%Lf,y>0,y<%Lf", x_interval, x_interval, x_scale_len);
         char* x_axis_args[] = { x_axis, x_scale, NULL };
-        plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color);
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, x_scale_color, false);
     }
     if (plot_y_axis) {
         char x_axis[] = "x=0";
         char* x_scale = NULL;
         alloc_sprintf(&x_scale, "y=CEIL(Y/%Lf)*%Lf,x>0,x<%Lf", y_interval, y_interval, y_scale_len);
         char* x_axis_args[] = { x_axis, x_scale, NULL };
-        plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color);
+        plot_buffer(x_axis_args, rgba, h, w, dx, dy, y_scale_color, false);
     }
     if (output_file == NULL) {
         output_file = stdout;

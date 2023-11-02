@@ -1,1 +1,1 @@
-w=3840 && h=2160 && max=3600 && for i in `seq $max`; do cplotter polar -0.3 2.2 "$h" "-1.25*$w/$h" "1.25*$w/$h" $h "0" "113*pi*$i/$max" "50000" "SIN(t*pi)+SIN(t)" > polar_10/test$i.png; done
+w=3840 && h=2160 && max=1 && for i in `seq $max`; do cplotter polar -0.3 2.2 "$h" "-1.25*$w/$h" "1.25*$w/$h" $h "0" "113*pi*$i/$max" "50000" "SIN(t*pi)+SIN(t)" > polar_10/test$i.png; done

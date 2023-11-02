@@ -37,9 +37,8 @@ int main(int argc, char** argv) {
     init_cplot();
     // init_cplot_by_args(); // or use command line args
     set_cplot_attrs(output);
-    char expr_y[] = "SQRT(COS(2*t))*SIN(t)";
-    char expr_x[] = "SQRT(COS(2*t))*COS(t)";
-    char* plot_args[] = { expr_y, expr_x, NULL };
+    char expr[] = "SQRT(COS(2*t))*SIN(t),SQRT(COS(2*t))*COS(t)";
+    char* plot_args[] = { expr, NULL };
     plot_parametric(plot_args);
     fclose(output);
     return 0;

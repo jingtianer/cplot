@@ -144,13 +144,19 @@ int main(int argc, char** argv) {
 int main(int argc, char** argv) {
     if (argc < 8) {
         char* str;
-        logger(INFO_LOG, "Usage: %s [normal|polar|paraametric|function] y1 y2 sy x1 x2 sx expression\nexamples:", argv[0]);
+        logger(INFO_LOG, "Usage: %s [normal|polar|paraametric|function] y1 y2 sy x1 x2 sx <t1> <t2> <t-accuracy> [expression...] \nexamples:", argv[0]);
         example("%s function \"0\" 4 300 -1 2 300 \"x*x\"", argv[0]);
         example("%s polar \"-11.1\" \"8\" 300 \"-9.6\" \"4*pi\" 300 0 \"4*pi\" \"300\" \"t\"", argv[0]);
         example("%s polar \"-10\" \"10\" 300 \"-10\" \"10\" 300 0 \"2*pi\" \"300\" \"TAN(t+pi/4)\"", argv[0]);
         example("%s polar \"-1\" \"1\" 300 \"-1\" \"1\" 300 0 \"10*pi\" \"300\" \"COS(1.8*t)\"", argv[0]);
-        example("%s parametric \"-1\" \"1\" 300 \"-1\" \"1\" 300 \"0*pi\" \"2*pi\" \"300\" \"SIN(t)^3\" \"COS(t)^3\"", argv[0]);
+        example("%s parametric \"-1\" \"1\" 300 \"-1\" \"1\" 300 \"0*pi\" \"2*pi\" \"300\" \"SIN(t)^3,COS(t)^3\"", argv[0]);
         example("%s polar \"-1\" \"1\" 300 \"-1\" \"1\" 300 \"0*pi\" \"2*pi\" \"300\" \"TAN(4*t)\"", argv[0]);
+
+        example("%s normal \"0\" \"2\" 300 \"0\" \"pi*2\" 300 \"r<1,t%(pi/2)>0,t%(pi/2)<=pi/4\" \"r>1,r<2,t%(pi/2)>pi/4,t%(pi/2)<=pi/2\"", argv[0]);
+        example("%s normal \"0\" \"2*pi\" 300 \"0\" \"2*pi\" 300 \"(r-t)*(r-1)=0\"", argv[0]);
+        example("%s normal \"0\" \"SQRT(2)\" 300 \"0\" \"2*pi\" 300 \"r*r=2*COS(2*t)\"", argv[0]);
+        example("%s normal \"0\" \"3\" 300 \"0\" \"2*pi\" 300 \"(r*COS(t))^2/9+(r*SIN(t))^2/4=1\"", argv[0]);
+
         example("%s normal \"-1\" 1 300 -1 1 300 \"x*x+y*y-1=0\"", argv[0]);
         example("%s normal \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x+y)^2=0\"", argv[0]);
         example("%s normal \"-pi/2\" \"pi/2\" 300 \"-3*pi\" \"2*pi\" 300 \"y^2-SIN(x)^2=0\"", argv[0]);
