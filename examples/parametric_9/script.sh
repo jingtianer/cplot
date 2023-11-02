@@ -1,0 +1,1 @@
+w=3840 && h=2160 && a=1 && b=0.3 && max=360 && for i in `seq $max`; do cplotter parametric -1.75 1.75 $h "-1.75*$w/$h" "1.75*$w/$h" $h 0 "6*pi*$i/$max" 5000 "($a+$b)*SIN(t)-$b*SIN(($a+$b)/$b*t)" "($a+$b)*COS(t)-$b*COS(($a+$b)/$b*t)" > parametric_9/test$i.png; done

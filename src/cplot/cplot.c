@@ -810,8 +810,8 @@ void plot_polar_buffer(char** argv, unsigned char* rgba, int h, int w, number_t 
     for (char** expr = argv; *expr; expr++) expr_cnt++;
     char** exprs = malloc(sizeof(char*) * (expr_cnt * 2 + 1));
     for (int i = 0; i < expr_cnt * 2; i++) {
-        if (i % 2 == 0) alloc_sprintf(&exprs[i], "%s*SIN(t)", argv[i / 2]);
-        else alloc_sprintf(&exprs[i], "%s*COS(t)", argv[i / 2]);
+        if (i % 2 == 0) alloc_sprintf(&exprs[i], "(%s)*SIN(t)", argv[i / 2]);
+        else alloc_sprintf(&exprs[i], "(%s)*COS(t)", argv[i / 2]);
     }
     exprs[expr_cnt * 2] = NULL;
     plot_parametric_buffer(exprs, rgba, h, w, dx, dy, color);
